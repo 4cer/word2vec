@@ -2,22 +2,25 @@ from abc import abstractmethod, ABC
 import numpy as np
 
 
+from nonlinearity import NonLinearity
+
+
 class Layer(ABC):
     @property
     def weights(self) -> np.ndarray:
-        return self.weights
+        return self._weights
     
     @property
     def biases(self) -> np.ndarray | None:
-        return self.biases
+        return self._biases
     
     @property
     def bias(self) -> float | None:
-        return self.bias
+        return self._bias
     
     @property
-    def nonlinearity(self) -> function | None:
-        return self.nonlinearity
+    def nonlinearity(self) -> NonLinearity | None:
+        return self._nonlinearity
     
     @abstractmethod
     def __init__(self, size: int) -> None: ...
@@ -37,7 +40,7 @@ class Layer(ABC):
         weights: np.ndarray,
         biases: np.ndarray,
         bias: float,
-        nonlinearity: function
+        nonlinearity: NonLinearity
     ): ...
 
 

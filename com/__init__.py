@@ -1,22 +1,16 @@
-from layer import Layer, Linear, ReLU, Sigmoid, SoftMax
-from loss import LossFunction, CrossEntropy, CathegoricalCrossEntropy
-from model import Model
-from com.layer import 
-from optmizer import Optimizer
-from scheduler import Scheduler
+from layer import ILayer
+from loss import ILossFunction, CrossEntropy, CategoricalCrossEntropy
+from model import IModel
+from optmizer import IOptimizer
+from scheduler import IScheduler
 
 
 __all__ = [
-    "Layer",
-    "Linear",
-    "ReLU",
-    "Sigmoid",
-    "SoftMax",
-    "LossFunction",
+    "ILayer",
+    "ILossFunction",
     "CrossEntropy",
-    "CathegoricalCrossEntropy",
-    "Model",
-    "Layer",
-    "Optimizer",
-    "Scheduler"
+    "CategoricalCrossEntropy",
+    "IModel",
+    "IOptimizer",
+    "IScheduler"
 ]

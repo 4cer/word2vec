@@ -1,15 +1,17 @@
 from abc import abstractmethod, ABC
-from loss import LossFunction
 
 
-class Optimizer(ABC):
+from com.loss import ILossFunction
+
+
+class IOptimizer(ABC):
     def __init__(
         self,
-        loss: LossFunction,
+        loss: ILossFunction,
         max_iterations: int = -1,
         learning_rate: float = 0.1
     ) -> None:
-        self.loss: LossFunction = loss
+        self.loss: ILossFunction = loss
         self.max_iterations: int = max_iterations
         self.learning_rate: float = learning_rate
 
@@ -17,10 +19,10 @@ class Optimizer(ABC):
     def set_learning_rate(self, learning_rate: float): ...
 
 
-class SGD(Optimizer):
+class SGD(IOptimizer):
     def __init__(
             self,
-            loss: LossFunction,
+            loss: ILossFunction,
             max_iterations: int = -1,
             learning_rate: float = 0.1
     ) -> None:

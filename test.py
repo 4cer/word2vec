@@ -1,11 +1,17 @@
-from com import Model, Layer, Linear, SoftMax
+from com import model, layer
 
 
-class SkipGram(Model):
+class SkipGram(model.IModel):
     def __init__(self) -> None:
-        super().__init__()
+        self.linear1 = layer.Linear(3000, 300, False)
+        self.linear2 = layer.Linear(300,3000, False)
+        self.softmax = layer.SoftMax()
+        
     def forward(self, x):
-        pass
+        x = self.linear1(x)
+        x = self.linear2(x)
+        x = self.softmax(x)
+        return x
 
 def prepare_vocabulary() -> tuple[list[float], list[str]]:
     return (

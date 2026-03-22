@@ -2,16 +2,16 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 
-class LossFunction(ABC):
+class ILossFunction(ABC):
     @abstractmethod
     def calculate(self, input) -> np.ndarray | float: ...
 
 
-class CrossEntropy(LossFunction):
+class CrossEntropy(ILossFunction):
     def calculate(self, input) -> np.ndarray | float:
         raise NotImplementedError("CrossEntropy not implemented!")
 
 
-class CathegoricalCrossEntropy(LossFunction):
+class CategoricalCrossEntropy(ILossFunction):
     def calculate(self, input) -> np.ndarray | float:
         raise NotImplementedError("CategoricalCrossEntropy not implemented!")

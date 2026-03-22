@@ -2,7 +2,19 @@ from abc import abstractmethod, ABC
 import numpy as np
 
 
-class Layer(ABC):
+class ILayer(ABC):
+    def __init__(self) -> None:
+        self.on_call = self.forward
+
+    def enable_caching(self) -> None:
+        self.on_call = self.forward_caching
+
+    def disable_caching(self) -> None:
+        self.on_call = self.forward
+
+    def __call__(self, input: np.ndarray) -> np.ndarray:
+        return self.on_call(input)
+
     @property
     def cache(self) -> np.ndarray | None:
         return self._cache
@@ -20,7 +32,7 @@ class Layer(ABC):
     def back(self, input: np.ndarray) -> np.ndarray: ...
 
 
-class Linear(Layer):
+class Linear(ILayer):
     @property
     def weights(self) -> np.ndarray:
         return self._weights
@@ -39,13 +51,31 @@ class Linear(Layer):
             out_size: int,
             bias: bool = True
     ) -> None:
-        
+        super().__init__()
+        self._weights: np.ndarray = np.ndarray(
+            (in_size, out_size),
+            dtype=np.float32
+        )
 
+        if not bias:
+            self._biases = None
+            self._bias = None
+        # TODO implement biases exist case -- not necessary for word2vec
+    
     def forward(self, input: np.ndarray) -> np.ndarray:
-        ...
+        np.matmul(self.weights, input, out=input)
+        return input
+    
+    def forward_caching(self, input: np.ndarray) -> np.ndarray:
+        np.matmul(self.weights, input, out=input)
+        self.cache = np.copy(input)
+        return input
+    
+    def back(self, input: np.ndarray) -> np.ndarray:
+        return np.transpose(self.weights) * input
 
 
-class ReLU(Layer):
+class ReLU(ILayer):
     def forward(self, input: np.ndarray) -> np.ndarray:
         np.maximum(0, input, out=input)
         return input
@@ -62,7 +92,7 @@ class ReLU(Layer):
         return grad_x
 
 
-class SoftMax(Layer):
+class SoftMax(ILayer):
     def forward(self, input: np.ndarray) -> np.ndarray:
         exp = np.exp(input)
         return exp / np.sum(exp)
@@ -78,7 +108,7 @@ class SoftMax(Layer):
         raise NotImplementedError("This case basically does not occur.")
 
 
-class Sigmoid(Layer):
+class Sigmoid(ILayer):
     def forward(self, input: np.ndarray) -> np.ndarray:
         return 1 / (1 + np.exp(-input))
     

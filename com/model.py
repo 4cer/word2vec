@@ -4,7 +4,7 @@ from abc import abstractmethod, ABC
 from layer import Layer
 
 
-class Model:
+class Model(ABC):
     @property
     def layers(self) -> list[Layer]:
         return self._layers
@@ -14,3 +14,6 @@ class Model:
 
     def add_layer(self, layer: Layer) -> None:
         self.layers.append(layer)
+
+    @abstractmethod
+    def forward(self): ...

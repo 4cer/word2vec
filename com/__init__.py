@@ -1,22 +1,22 @@
-from layer import Layer, FullyConnected
+from layer import Layer, Linear, ReLU, Sigmoid, SoftMax
 from loss import LossFunction, CrossEntropy, CathegoricalCrossEntropy
 from model import Model
-from nonlinearity import NonLinearity, ReLU, Sigmoid, SoftMax
+from com.layer import 
 from optmizer import Optimizer
 from scheduler import Scheduler
 
 
 __all__ = [
     "Layer",
-    "FullyConnected",
+    "Linear",
+    "ReLU",
+    "Sigmoid",
+    "SoftMax",
     "LossFunction",
     "CrossEntropy",
     "CathegoricalCrossEntropy",
     "Model",
-    "NonLinearity",
-    "ReLU",
-    "Sigmoid",
-    "SoftMax",
+    "Layer",
     "Optimizer",
     "Scheduler"
 ]

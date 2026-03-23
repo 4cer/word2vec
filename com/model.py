@@ -22,10 +22,13 @@ class IModel(ABC):
         self.handle_graph = self.nope_graph
         self.graph: list[ILayer.LayerType] | None = None
 
-    @abstractmethod
-    def forward(self, x) -> np.ndarray: ...
+    def __call__(self, x) -> Any:
+        return self._forward(x)
 
-    def enable_training(
+    @abstractmethod
+    def _forward(self, x) -> np.ndarray: ...
+
+    def enable_graph_tracing(
             self,
             graph: list[ILayer.LayerType],
             persistent_graph = True
@@ -35,7 +38,7 @@ class IModel(ABC):
         self.handle_graph = self.register_in_graph
         pass
 
-    def disable_training(self) -> None:
+    def disable_graph_tracing(self) -> None:
         self.graph = None
         self.handle_graph = self.nope_graph
 

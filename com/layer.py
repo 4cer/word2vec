@@ -84,7 +84,7 @@ class Linear(ILayer):
         return input
     
     def back(self, input: np.ndarray) -> np.ndarray:
-        return np.transpose(self.weights) * input
+        return np.transpose(self.weights) @ input
     
     def graph_register(self) -> None:
         self.model.handle_graph(self.LayerType.LINEAR)

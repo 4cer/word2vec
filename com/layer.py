@@ -71,7 +71,6 @@ class Linear(ILayer):
         self.weights[:] = np.random.uniform(min, max, self.weights.shape).astype(np.float32)
 
     def init_zeros(self) -> None:
-        """Fill weights in-place with zeros."""
         self.weights[:] = 0.0
     
     def forward(self, input: np.ndarray) -> np.ndarray:
@@ -79,9 +78,9 @@ class Linear(ILayer):
         return input
     
     def forward_caching(self, input: np.ndarray) -> np.ndarray:
-        np.matmul(self.weights, input, out=input)
+        output = np.matmul(self.weights, input)
         self.cache = np.copy(input)
-        return input
+        return output
     
     def back(self, input: np.ndarray) -> np.ndarray:
         return np.transpose(self.weights) @ input
@@ -122,9 +121,9 @@ class SoftMax(ILayer):
         return exp / np.sum(exp)
     
     def forward_caching(self, input: np.ndarray) -> np.ndarray:
-        x = 1 / (1 + np.exp(-input))
-        self.cache = np.copy(x)
-        return x
+        self.cache = np.copy(input)
+        exp = np.exp(input)
+        return exp / np.sum(exp)
 
     def back(self, input: np.ndarray) -> np.ndarray:
         if self.cache is None:

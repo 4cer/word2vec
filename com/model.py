@@ -45,8 +45,8 @@ class IModel(ABC):
     def nope_graph(self, tag: ILayer.LayerType) -> None:
         pass
 
-    def load_weights(checkpoint_path: str) -> None:
+    def load_weights_fp32(self, checkpoint_path: str) -> None:
         raise NotImplementedError("Weight loading not implemented yet!")
 
-    def save_weights_fp32(checkpoint_path: str) -> None:
+    def save_weights_fp32(self, checkpoint_path: str) -> None:
         raise NotImplementedError("Weight saving not implemented yet!")

@@ -11,6 +11,7 @@ class ContinuousBagOfWords(model.IModel):
             dictionary_size: int,
             hidden_size: int = 512
     ) -> None:
+        super().__init__()
         self.linear1 = layer.Linear(self, dictionary_size, hidden_size, False)
         self.linear2 = layer.Linear(self, hidden_size, dictionary_size, False)
         self.softmax = layer.SoftMax(self)

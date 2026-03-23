@@ -74,8 +74,8 @@ class Linear(ILayer):
         self.weights[:] = 0.0
     
     def forward(self, input: np.ndarray) -> np.ndarray:
-        np.matmul(self.weights, input, out=input)
-        return input
+        output = np.matmul(self.weights, input)
+        return output
     
     def forward_caching(self, input: np.ndarray) -> np.ndarray:
         output = np.matmul(self.weights, input)

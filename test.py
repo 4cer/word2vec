@@ -1,31 +1,75 @@
 from com import model, layer
 
 
-class SkipGram(model.IModel):
-    def __init__(self) -> None:
-        self.linear1 = layer.Linear(3000, 300, False)
-        self.linear2 = layer.Linear(300,3000, False)
-        self.softmax = layer.SoftMax()
+import numpy as np
+import csv, argparse, json
+
+
+class ContinuousBagOfWords(model.IModel):
+    def __init__(
+            self,
+            dictionary_size: int,
+            hidden_size: int = 512
+    ) -> None:
+        self.linear1 = layer.Linear(self, dictionary_size, hidden_size, False)
+        self.linear2 = layer.Linear(self, hidden_size, dictionary_size, False)
+        self.softmax = layer.SoftMax(self)
         
-    def forward(self, x):
+    def forward(self, x: np.ndarray):
+        """Feeds forward operation.
+
+        Feeds a set of 1-hot vectors, or a batch of sets of 1-hot vectors 
+        forward through the model. Importatly, window size is understood as
+        number of surrounding words on EACH SIDE; x shape must be (b, w, 1, v)
+        if batched or (w, 1, v) otherwise, where:
+
+                - b - batch size
+                - w - surrounding word cound (2x window size)
+                - v - vocabulary size.
+
+        Args:
+            x (np.ndarray): Window-sized set of 1-hot vectors or batch thereof.
+
+        Returns:
+            np.ndarray: Pobabilities for each word in vocab to be the middle
+            word.
+        """
         x = self.linear1(x)
+        x = x.mean(axis=-3)
+
         x = self.linear2(x)
         x = self.softmax(x)
         return x
 
-def prepare_vocabulary() -> tuple[list[float], list[str]]:
-    return (
-        [],
-        []
-    )
 
-def build_shuffled_sets() -> tuple[list[float], list[float], list[float], list[float]]:
-    return (
-        [],
-        [],
-        [],
-        []
-    )
+def load_dataset(
+        train_path=r"dataset\processed\train.csv",
+        test_path=r"dataset\processed\test.csv"
+):
+    def read_csv(path):
+        with open(path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            X, y = [], []
+            for row in reader:
+                X.append(list(map(int, row["x"].split())))
+                y.append(int(row["y"]))
+        return np.array(X, dtype=np.int32), np.array(y, dtype=np.int32)
+
+    X_train, y_train = read_csv(train_path)
+    X_test,  y_test  = read_csv(test_path)
+
+    print(f"X_train {X_train.shape}  y_train {y_train.shape}")
+    print(f"X_test  {X_test.shape}   y_test  {y_test.shape}")
+    return X_train, y_train, X_test, y_test
+
+
+def get_vocab_size(
+        vocab_path=r"dataset\processed\vocab.json",
+) -> int:
+    with open(vocab_path, "r", encoding="utf-8") as f:
+        vocab = json.load(f)
+    return vocab["vocab_size"]
+
 
 def train(
         x_train,
@@ -35,6 +79,7 @@ def train(
 ):
     pass
 
+
 def inference_tests(
         x_verify,
         y_verify
@@ -42,11 +87,18 @@ def inference_tests(
     pass
 
 
+def main():
+    model = ContinuousBagOfWords(
+        dictionary_size=get_vocab_size()
+    )
+
+    X_train, y_train, X_test, y_test = load_dataset()
+
+    train(X_train, y_train, X_test, y_test)
+
+    inference_tests(X_test, y_test)
+    pass
+
+
 if __name__ == "__main__":
-    vocab_vecs, vocab_words = prepare_vocabulary()
-
-    x_train, y_train, x_verify, y_verify = build_shuffled_sets()
-
-    train(x_train, y_train, x_verify, y_verify)
-
-    inference_tests(x_verify, y_verify)
+    main()

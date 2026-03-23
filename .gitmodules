@@ -1,0 +1,3 @@
+[submodule "dataset/repo"]
+	path = dataset/repo
+	url = https://huggingface.co/roshbeed/text8-dataset

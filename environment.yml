@@ -1,0 +1,8 @@
+name: word2vec
+channels:
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy
+  - jupyter
+  - pip

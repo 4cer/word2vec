@@ -17,6 +17,9 @@ class ContinuousBagOfWords(model.IModel):
         self.linear2 = layer.Linear(self, hidden_size, dictionary_size)
         self.softmax = layer.SoftMax(self)
         
+        self.linear1.init_random(-0.5 / dictionary_size, 0.5 / dictionary_size)
+        self.linear2.init_zeros()
+        
     def forward(self, x: np.ndarray):
         """Feed forward operation.
 

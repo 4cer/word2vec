@@ -51,7 +51,7 @@ class ILayer(ABC):
     def graph_register(self) -> None: ...
 
     @abstractmethod
-    def _identify(self) -> tuple[Any, Any]: ...
+    def _identify(self) -> tuple[Any, Any, Any]: ...
 
 
 class Linear(ILayer):
@@ -66,6 +66,13 @@ class Linear(ILayer):
             dtype=np.float32
         )
         super().__init__(model)
+
+    def init_random(self, min, max):
+        self.weights[:] = np.random.uniform(min, max, self.weights.shape).astype(np.float32)
+
+    def init_zeros(self) -> None:
+        """Fill weights in-place with zeros."""
+        self.weights[:] = 0.0
     
     def forward(self, input: np.ndarray) -> np.ndarray:
         np.matmul(self.weights, input, out=input)
@@ -82,8 +89,8 @@ class Linear(ILayer):
     def graph_register(self) -> None:
         self.model.handle_graph(self.LayerType.LINEAR)
 
-    def _identify(self) -> tuple[Any, Any]:
-        return (self.LayerType.LINEAR, self.weights.shape)
+    def _identify(self) -> tuple[Any, Any, Any]:
+        return (self.LayerType.LINEAR, self.weights.shape, self)
 
 
 class ReLU(ILayer):
@@ -105,8 +112,8 @@ class ReLU(ILayer):
     def graph_register(self) -> None:
         self.model.handle_graph(self.LayerType.RELU)
 
-    def _identify(self) -> tuple[Any, Any]:
-        return (self.LayerType.RELU, None)
+    def _identify(self) -> tuple[Any, Any, Any]:
+        return (self.LayerType.RELU, None, self)
 
 
 class SoftMax(ILayer):
@@ -127,8 +134,8 @@ class SoftMax(ILayer):
     def graph_register(self) -> None:
         self.model.handle_graph(self.LayerType.SOFTMAX)
 
-    def _identify(self) -> tuple[Any, Any]:
-        return (self.LayerType.SOFTMAX, None)
+    def _identify(self) -> tuple[Any, Any, Any]:
+        return (self.LayerType.SOFTMAX, None, self)
 
 
 class Sigmoid(ILayer):
@@ -148,6 +155,6 @@ class Sigmoid(ILayer):
     def graph_register(self) -> None:
         self.model.handle_graph(self.LayerType.SIGMOID)
 
-    def _identify(self) -> tuple[Any, Any]:
-        return (self.LayerType.SIGMOID, None)
+    def _identify(self) -> tuple[Any, Any, Any]:
+        return (self.LayerType.SIGMOID, None, self)
 

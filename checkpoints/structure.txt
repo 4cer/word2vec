@@ -1,0 +1,17 @@
+Checkpoint format (all integers little-endian):
+
+  File header:
+    4B  magic       b'WGHT'
+    4I  version     currently 1
+    4I  layer_count number of entries that follow
+
+  Per-layer record:
+    4I  layer_index  position in self.layers (0-based)
+    4I  layer_type   LayerType.value (int)
+    4I  ndim         number of shape dimensions (0 for activation layers)
+    ndim × 4I        shape dimensions
+    ndim>0: raw float32 weight data (C-contiguous)
+
+Activation layers (shape=None) contribute a header with ndim=0
+
+and no weight bytes, so the position slot is always accounted for.

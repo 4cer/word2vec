@@ -1,10 +1,21 @@
 from abc import abstractmethod, ABC
 import numpy as np
+from enum import Enum
+
+
+from com.model import IModel
 
 
 class ILayer(ABC):
-    def __init__(self) -> None:
+    class LayerType(Enum):
+        LINEAR = 0
+        RELU = 1
+        SOFTMAX = 2
+        SIGMOID = 3
+
+    def __init__(self, model: IModel) -> None:
         self.on_call = self.forward
+        self.model = model
 
     def enable_caching(self) -> None:
         self.on_call = self.forward_caching
@@ -31,6 +42,9 @@ class ILayer(ABC):
     @abstractmethod
     def back(self, input: np.ndarray) -> np.ndarray: ...
 
+    @abstractmethod
+    def graph_register(self) -> None: ...
+
 
 class Linear(ILayer):
     @property
@@ -47,11 +61,12 @@ class Linear(ILayer):
     
     def __init__(
             self,
+            model: IModel,
             in_size: int,
             out_size: int,
             bias: bool = True
     ) -> None:
-        super().__init__()
+        super().__init__(model)
         self._weights: np.ndarray = np.ndarray(
             (in_size, out_size),
             dtype=np.float32
@@ -73,6 +88,9 @@ class Linear(ILayer):
     
     def back(self, input: np.ndarray) -> np.ndarray:
         return np.transpose(self.weights) * input
+    
+    def graph_register(self) -> None:
+        self.model.handle_graph(self.LayerType.LINEAR)
 
 
 class ReLU(ILayer):
@@ -90,6 +108,9 @@ class ReLU(ILayer):
             raise ValueError("ReLU: Failed to find cached forward pass!")
         grad_x = input * (self.cache > 0).astype(input.dtype)
         return grad_x
+    
+    def graph_register(self) -> None:
+        self.model.handle_graph(self.LayerType.RELU)
 
 
 class SoftMax(ILayer):
@@ -106,6 +127,9 @@ class SoftMax(ILayer):
         if self.cache is None:
             raise ValueError("SoftMax: Failed to find cached forward pass!")
         raise NotImplementedError("This case basically does not occur.")
+    
+    def graph_register(self) -> None:
+        self.model.handle_graph(self.LayerType.SOFTMAX)
 
 
 class Sigmoid(ILayer):
@@ -121,3 +145,6 @@ class Sigmoid(ILayer):
         if not self.cache:
             raise ValueError("Sigmoid: Failed to find cached forward pass!")
         return input * self.cache * (1 - self.cache)
+    
+    def graph_register(self) -> None:
+        self.model.handle_graph(self.LayerType.SIGMOID)

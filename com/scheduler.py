@@ -1,7 +1,10 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from abc import abstractmethod, ABC
 
 
-from optmizer import IOptimizer
+if TYPE_CHECKING:
+    from com.optimizer import IOptimizer
 
 
 class IScheduler(ABC):
@@ -31,12 +34,12 @@ class LinearScheduler(IScheduler):
         self.step_number = 0
 
     def step(self, **kwargs) -> None:
+        self.step_number += 1
         if self.step_number > self.until_epoch:
             return
         progress: float = (self.step_number / self.until_epoch)
         new_lr: float = (1 - progress) * self.lr_start + progress * self.lr_stop
         self.optimizer.set_learning_rate(new_lr)
-        self.step_number += 1
 
 
 class PlateauScheduler(IScheduler):
@@ -56,6 +59,3 @@ class PlateauScheduler(IScheduler):
 
     def step(self, **kwargs) -> None:
         raise NotImplementedError("PlateauScheduler not implemetned!")
-
-
-    

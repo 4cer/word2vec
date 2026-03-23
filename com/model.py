@@ -1,12 +1,17 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from abc import abstractmethod, ABC
+from typing import Any
 import numpy as np
 
 
-from com.layer import ILayer
+if TYPE_CHECKING:
+    from com.layer import ILayer
 
 
 class IModel(ABC):
     def __init__(self) -> None:
+        self.layers: list[tuple[ILayer, Any]] = []
         self.caching = self.nope_caching
         self.handle_graph = self.nope_graph
         self.graph: list[ILayer.LayerType] | None = None

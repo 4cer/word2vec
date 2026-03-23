@@ -1,9 +1,13 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from abc import abstractmethod, ABC
 import numpy as np
 from enum import Enum
+from typing import Any
 
 
-from com.model import IModel
+if TYPE_CHECKING:
+    from com.model import IModel
 
 
 class ILayer(ABC):
@@ -16,6 +20,7 @@ class ILayer(ABC):
     def __init__(self, model: IModel) -> None:
         self.on_call = self.forward
         self.model = model
+        self.model.layers.append(self._identify())
 
     def enable_caching(self) -> None:
         self.on_call = self.forward_caching
@@ -45,37 +50,22 @@ class ILayer(ABC):
     @abstractmethod
     def graph_register(self) -> None: ...
 
+    @abstractmethod
+    def _identify(self) -> tuple[Any, Any]: ...
+
 
 class Linear(ILayer):
-    @property
-    def weights(self) -> np.ndarray:
-        return self._weights
-    
-    @property
-    def biases(self) -> np.ndarray | None:
-        return self._biases
-    
-    @property
-    def bias(self) -> float | None:
-        return self._bias
-    
     def __init__(
             self,
             model: IModel,
             in_size: int,
-            out_size: int,
-            bias: bool = True
+            out_size: int
     ) -> None:
-        super().__init__(model)
-        self._weights: np.ndarray = np.ndarray(
+        self.weights: np.ndarray = np.ndarray(
             (in_size, out_size),
             dtype=np.float32
         )
-
-        if not bias:
-            self._biases = None
-            self._bias = None
-        # TODO implement biases exist case -- not necessary for word2vec
+        super().__init__(model)
     
     def forward(self, input: np.ndarray) -> np.ndarray:
         np.matmul(self.weights, input, out=input)
@@ -91,6 +81,9 @@ class Linear(ILayer):
     
     def graph_register(self) -> None:
         self.model.handle_graph(self.LayerType.LINEAR)
+
+    def _identify(self) -> tuple[Any, Any]:
+        return (self.LayerType.LINEAR, self.weights.shape)
 
 
 class ReLU(ILayer):
@@ -112,6 +105,9 @@ class ReLU(ILayer):
     def graph_register(self) -> None:
         self.model.handle_graph(self.LayerType.RELU)
 
+    def _identify(self) -> tuple[Any, Any]:
+        return (self.LayerType.RELU, None)
+
 
 class SoftMax(ILayer):
     def forward(self, input: np.ndarray) -> np.ndarray:
@@ -131,6 +127,9 @@ class SoftMax(ILayer):
     def graph_register(self) -> None:
         self.model.handle_graph(self.LayerType.SOFTMAX)
 
+    def _identify(self) -> tuple[Any, Any]:
+        return (self.LayerType.SOFTMAX, None)
+
 
 class Sigmoid(ILayer):
     def forward(self, input: np.ndarray) -> np.ndarray:
@@ -148,3 +147,7 @@ class Sigmoid(ILayer):
     
     def graph_register(self) -> None:
         self.model.handle_graph(self.LayerType.SIGMOID)
+
+    def _identify(self) -> tuple[Any, Any]:
+        return (self.LayerType.SIGMOID, None)
+

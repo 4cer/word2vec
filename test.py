@@ -1,8 +1,9 @@
-from com import model, layer
-
-
 import numpy as np
 import csv, argparse, json
+import types
+
+
+from com import model, layer
 
 
 class ContinuousBagOfWords(model.IModel):
@@ -12,12 +13,12 @@ class ContinuousBagOfWords(model.IModel):
             hidden_size: int = 512
     ) -> None:
         super().__init__()
-        self.linear1 = layer.Linear(self, dictionary_size, hidden_size, False)
-        self.linear2 = layer.Linear(self, hidden_size, dictionary_size, False)
+        self.linear1 = layer.Linear(self, dictionary_size, hidden_size)
+        self.linear2 = layer.Linear(self, hidden_size, dictionary_size)
         self.softmax = layer.SoftMax(self)
         
     def forward(self, x: np.ndarray):
-        """Feeds forward operation.
+        """Feed forward operation.
 
         Feeds a set of 1-hot vectors, or a batch of sets of 1-hot vectors 
         forward through the model. Importatly, window size is understood as
@@ -41,6 +42,9 @@ class ContinuousBagOfWords(model.IModel):
         x = self.linear2(x)
         x = self.softmax(x)
         return x
+    
+    def print_layers(self):
+        print(self.layers)
 
 
 def load_dataset(
@@ -92,6 +96,9 @@ def main():
     model = ContinuousBagOfWords(
         dictionary_size=get_vocab_size()
     )
+    
+    model.print_layers()
+    exit()
 
     X_train, y_train, X_test, y_test = load_dataset()
 

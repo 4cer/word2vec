@@ -118,5 +118,5 @@ class SGD(IOptimizer):
                 dL = ref.back(dL)
             else:
                 dL = ref.back(dL)
- 
+
         return loss_val

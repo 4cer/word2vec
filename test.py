@@ -109,7 +109,7 @@ def train(
         y_train: np.ndarray,
         x_verify: np.ndarray,
         y_verify: np.ndarray,
-        batch_size: int = 50
+        batch_size: int = 5
 ) -> None:
     print("Starting training...")
     vocab_size = cbow.dictionary_size
@@ -129,28 +129,23 @@ def train(
 
     while opt.max_epochs < 0 or epoch < opt.max_epochs:
         epoch_loss = 0.0
-
-        perm = iter(np.random.permutation(n_samples))
+ 
+        perm = np.random.permutation(n_samples)
         
-        for sample_idx in perm:
-            # 1. Prepare input
-            x_hots = []
-            labels = []
-            for _ in range(batch_size-1):
-                x_hots.append(to_one_hot(x_train[sample_idx], vocab_size))
-                lab = np.zeros(vocab_size, dtype=np.float32)
-                lab[y_train[sample_idx]] = 1.0
-                labels.append(lab)
-                next(perm)
-            x_hots.append(to_one_hot(x_train[sample_idx], vocab_size))
-            lab = np.zeros(vocab_size, dtype=np.float32)
-            lab[y_train[sample_idx]] = 1.0
-            labels.append(lab)
+        for batch_start in range(0, n_samples, batch_size):
+            batch_indices = perm[batch_start : batch_start + batch_size]
+ 
+            # 1. Prepare batch
+            x_hot = np.stack([to_one_hot(x_train[i], vocab_size) for i in batch_indices])
+            label = np.zeros((len(batch_indices), vocab_size), dtype=np.float32)
+            label[np.arange(len(batch_indices)), y_train[batch_indices]] = 1.0
 
-            # x_hot1   = to_one_hot(x_train[sample_idx], vocab_size)   # (w, v, 1)
-            x_hot = np.stack(x_hots)
-            label = np.stack(labels)
+            # print("x_hot", x_hot.shape)
+            # print("label", label.shape)
 
+            # assert x_hot.shape == (batch_size, 2, vocab_size, 1)
+            # assert label.shape == (batch_size, vocab_size)
+ 
             # 2. SGD step for batch
             sample_loss = opt.propagate(x_hot, label)
             epoch_loss += sample_loss
@@ -158,12 +153,13 @@ def train(
         avg_loss = epoch_loss / n_samples
 
         if avg_loss < best_avg_loss:
+            best_avg_loss = avg_loss
             opt.model.save_weights_fp32(f"./checkpoints/checkpoint_{epoch:06}_{avg_loss:.2f}.wght")
 
         epoch += 1
 
         # Report every 10 epochs (and always on the first)
-        if epoch == 1 or epoch % 10 == 0:
+        if epoch == 1 or epoch % 5 == 0:
             train_acc = accuracy(cbow, x_train, y_train)
             val_acc   = accuracy(cbow, x_verify, y_verify)
             print(

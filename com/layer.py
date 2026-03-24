@@ -136,7 +136,7 @@ class ReLU(ILayer):
 class SoftMax(ILayer):
     def forward(self, input: np.ndarray) -> np.ndarray:
         exp = np.exp(input)
-        return exp / np.sum(exp)
+        return exp / np.sum(exp, axis=-2, keepdims=True)
     
     def forward_caching(self, input: np.ndarray) -> np.ndarray:
         self.cache = np.copy(input)

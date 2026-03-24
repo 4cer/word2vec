@@ -29,9 +29,9 @@ class ContinuousBagOfWords(model.IModel):
         number of surrounding words on EACH SIDE; x shape must be (b, w, 1, v)
         if batched or (w, 1, v) otherwise, where:
 
-                - b - batch size
-                - w - surrounding word cound (2x window size)
-                - v - vocabulary size.
+        - b: batch size
+        - w: surrounding word cound (2x window size)
+        - v: vocabulary size.
 
         Args:
             x (np.ndarray): Window-sized set of 1-hot vectors or batch thereof.
@@ -55,6 +55,7 @@ def load_dataset(
         train_path=r"dataset\processed\train.csv",
         test_path=r"dataset\processed\test.csv"
 ):
+    print("Loading dataset...", end=" ")
     def read_csv(path):
         with open(path, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
@@ -67,6 +68,7 @@ def load_dataset(
     X_train, y_train = read_csv(train_path)
     X_test,  y_test  = read_csv(test_path)
 
+    print("[ OK ]")
     print(f"X_train {X_train.shape}  y_train {y_train.shape}")
     print(f"X_test  {X_test.shape}   y_test  {y_test.shape}")
     return X_train, y_train, X_test, y_test
@@ -81,14 +83,14 @@ def get_vocab_size(
 
 
 def to_one_hot(indices: np.ndarray, vocab_size: int) -> np.ndarray:
-    """Convert a flat array of word indices (w,) into one-hot rows (w, 1, v).
+    """Convert a flat array of word indices (w,) into one-hot rows (w, v, 1).
 
     Each integer index becomes a 1-hot vector of length vocab_size, then gets
     an extra size-1 axis so the shape matches what _forward() expects.
     """
     w = len(indices)
-    one_hot = np.zeros((w, 1, vocab_size), dtype=np.float32)
-    one_hot[np.arange(w), 0, indices] = 1.0
+    one_hot = np.zeros((w, vocab_size, 1), dtype=np.float32)
+    one_hot[np.arange(w), indices, 0] = 1.0
     return one_hot
 
 
@@ -110,6 +112,7 @@ def train(
         x_verify: np.ndarray,
         y_verify: np.ndarray,
 ) -> None:
+    print("Starting training...")
     vocab_size = cbow.dictionary_size
     n_samples  = len(x_train)
 
@@ -133,7 +136,7 @@ def train(
         for sample_idx in perm:
             # --- prepare inputs ---
             # x_train[i] is a (w,) array of context-word indices
-            x_hot   = to_one_hot(x_train[sample_idx], vocab_size)   # (w, 1, v)
+            x_hot   = to_one_hot(x_train[sample_idx], vocab_size)   # (w, v, 1)
             # y_train[i] is a scalar centre-word index → one-hot label (v,)
             label   = np.zeros(vocab_size, dtype=np.float32)
             label[y_train[sample_idx]] = 1.0
@@ -166,12 +169,27 @@ def inference_tests(
     print(f"\nFinal validation accuracy: {acc:.4f}")
 
 
-def main():
-    cbow = ContinuousBagOfWords(
-        dictionary_size=get_vocab_size()
-    )
-    
+def vector_size_test(vocab_size: int, cbow: ContinuousBagOfWords):
+    """Throw an exception upon input shape mismatch.
+
+    Args:
+        vocab_size (int): Amount of words in vocabulary.
+        cbow (ContinuousBagOfWords): Model reference.
+    """
     cbow.print_layers()
+    v3 = np.random.uniform(0.0, 1.0, (2, vocab_size, 1))
+    cbow(v3)
+    print("Vector shape matches expected input shape.")
+
+
+def main():
+    vsize = get_vocab_size()
+
+    cbow = ContinuousBagOfWords(
+        dictionary_size=vsize
+    )
+
+    vector_size_test(vsize, cbow)
 
     X_train, y_train, X_test, y_test = load_dataset()
 

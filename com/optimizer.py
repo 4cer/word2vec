@@ -4,10 +4,9 @@ from abc import abstractmethod, ABC
 import numpy as np
 
 
-if TYPE_CHECKING:
-    from com.loss import ILossFunction
-    from com.model import IModel
-    import com.layer as layer
+from com.loss import ILossFunction
+from com.model import IModel
+import com.layer as layer
 
 
 def collapsed(output: np.ndarray, label: np.ndarray):
@@ -80,10 +79,10 @@ class SGD(IOptimizer):
     ) -> float:
         """Run one full SGD iteration
 
-          1. Forward pass  (populates each layer's cache).
-          2. Compute loss.
-          3. Backward pass (uses graph built by build_graph_once).
-          4. Update Linear weights in-place.
+        1. Forward pass  (populates each layer's cache).
+        2. Compute loss.
+        3. Backward pass (uses graph built by build_graph_once).
+        4. Update Linear weights in-place.
         
 
         Args:

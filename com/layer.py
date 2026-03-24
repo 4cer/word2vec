@@ -58,8 +58,8 @@ class Linear(ILayer):
     def __init__(
             self,
             model: IModel,
-            in_size: int,
-            out_size: int
+            out_size: int,
+            in_size: int
     ) -> None:
         self.weights: np.ndarray = np.ndarray(
             (in_size, out_size),

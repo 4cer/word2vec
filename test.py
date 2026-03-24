@@ -26,8 +26,8 @@ class ContinuousBagOfWords(model.IModel):
 
         Feeds a set of 1-hot vectors, or a batch of sets of 1-hot vectors 
         forward through the model. Importatly, window size is understood as
-        number of surrounding words on EACH SIDE; x shape must be (b, w, 1, v)
-        if batched or (w, 1, v) otherwise, where:
+        number of surrounding words on EACH SIDE; x shape must be (b, w, v, 1)
+        if batched or (w, v, 1) otherwise, where:
 
         - b: batch size
         - w: surrounding word cound (2x window size)
@@ -178,8 +178,10 @@ def vector_size_test(vocab_size: int, cbow: ContinuousBagOfWords):
     """
     cbow.print_layers()
     v3 = np.random.uniform(0.0, 1.0, (2, vocab_size, 1))
-    cbow(v3)
+    y: np.ndarray = cbow(v3)
     print("Vector shape matches expected input shape.")
+    assert y.shape == (vocab_size, 1)
+    print("Output shape is of shape (v, 1)")
 
 
 def main():

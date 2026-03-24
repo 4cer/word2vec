@@ -126,7 +126,7 @@ def train(
     opt.build_graph_once()
 
     epoch = 0
-    best_avg_loss = float('inf')
+    best_val_accuracy = 0
 
     while opt.max_epochs < 0 or epoch < opt.max_epochs:
         epoch_loss = 0.0
@@ -140,29 +140,25 @@ def train(
             x_hot = np.stack([to_one_hot(x_train[i], vocab_size) for i in batch_indices])
             label = np.zeros((len(batch_indices), vocab_size), dtype=np.float32)
             label[np.arange(len(batch_indices)), y_train[batch_indices]] = 1.0
-
-            # print("x_hot", x_hot.shape)
-            # print("label", label.shape)
-
-            # assert x_hot.shape == (batch_size, 2, vocab_size, 1)
-            # assert label.shape == (batch_size, vocab_size)
  
             # 2. SGD step for batch
             sample_loss = opt.propagate(x_hot, label)
             epoch_loss += sample_loss
 
-        avg_loss = epoch_loss / n_samples
-
-        if avg_loss < best_avg_loss:
-            best_avg_loss = avg_loss
-            opt.model.save_weights_fp32(f"./checkpoints/checkpoint_{epoch:06}_{avg_loss:.2f}.wght")
+        val_acc = accuracy(cbow, x_verify, y_verify)
+        if val_acc > best_val_accuracy:
+            best_val_accuracy = val_acc
+            checkpoint = f"./checkpoints/checkpoint_{epoch:06}_{val_acc:.2f}.wght"
+            print("Saving checkpoint", checkpoint)
+            opt.model.save_weights_fp32(f"./checkpoints/checkpoint_{epoch:06}_{val_acc:.2f}.wght")
 
         epoch += 1
 
-        # Report every 5 epochs (and always on the first)
-        if epoch == 1 or epoch % 5 == 0:
+        # Report every 10 epochs (and always on the first)
+        if epoch == 1 or epoch % 10 == 0:
             train_acc = accuracy(cbow, x_train, y_train)
-            val_acc   = accuracy(cbow, x_verify, y_verify)
+            avg_loss = epoch_loss / n_samples
+            # val_acc   = accuracy(cbow, x_verify, y_verify)
             print(
                 f"[epoch {epoch:>4}]  "
                 f"loss: {avg_loss:.4f}  "

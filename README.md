@@ -77,6 +77,12 @@ through `linear1` to retrieve their embedding vectors.
 ## PCA of embeddings
 Walla
 
+## Next steps
+Possible improvements in performance might be:
+- Implementing GPU training and inference using APIs such as CUDA, Vulkan, ROCm
+or OpenCL.
+- 
+
 ## Known Issues and Limitations
 - `PlateauScheduler` is not yet implemented.
 - Biases are not implemented in the `Linear` layer.
@@ -101,6 +107,7 @@ Walla
 - <input type="checkbox" disabled checked> Implement data preparation via
 Jupyter notebook
 - <input type="checkbox" disabled checked> Implement main script flow
+- <input type="checkbox" disabled> Implement batching
     - <input type="checkbox" disabled checked> Load dataset into numpy arrays
     - <input type="checkbox" disabled checked> Train using SGD
     - <input type="checkbox" disabled> Test

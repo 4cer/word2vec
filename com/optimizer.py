@@ -22,12 +22,12 @@ class IOptimizer(ABC):
         self,
         model: IModel, 
         loss: ILossFunction,
-        max_iterations: int = -1,
+        max_epochs: int = -1,
         learning_rate: float = 0.1
     ) -> None:
         self.model: IModel = model
         self.loss: ILossFunction = loss
-        self.max_iterations: int = max_iterations
+        self.max_epochs: int = max_epochs
         self.learning_rate: float = learning_rate
         self.built_graph_once: bool = False
 
@@ -47,10 +47,10 @@ class SGD(IOptimizer):
         self,
         model: IModel, 
         loss: ILossFunction,
-        max_iterations: int = -1,
+        max_epochs: int = -1,
         learning_rate: float = 0.1
     ) -> None:
-        super().__init__(model, loss, max_iterations, learning_rate)
+        super().__init__(model, loss, max_epochs, learning_rate)
 
         self._graph: list[tuple[layer.ILayer.LayerType, layer.ILayer]] = []
         self._collapse_fn = None

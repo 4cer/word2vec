@@ -109,6 +109,7 @@ def train(
         y_train: np.ndarray,
         x_verify: np.ndarray,
         y_verify: np.ndarray,
+        batch_size: int = 50
 ) -> None:
     print("Starting training...")
     vocab_size = cbow.dictionary_size
@@ -117,41 +118,56 @@ def train(
     opt = optimizer.SGD(
         model=cbow,
         loss=loss.CategoricalCrossEntropy(),
-        max_iterations=200,
+        max_epochs=200,
         learning_rate=0.1,
     )
-    # Build the backward graph and enable caching on all layers once,
-    # before the training loop starts.
+    
     opt.build_graph_once()
 
-    iteration = 0
-    while opt.max_iterations < 0 or iteration < opt.max_iterations:
+    epoch = 0
+    best_avg_loss = float('inf')
+
+    while opt.max_epochs < 0 or epoch < opt.max_epochs:
         epoch_loss = 0.0
 
-        # Shuffle training order each iteration to reduce ordering bias
-        perm = np.random.permutation(n_samples)
-
+        perm = iter(np.random.permutation(n_samples))
+        
         for sample_idx in perm:
-            # --- prepare inputs ---
-            # x_train[i] is a (w,) array of context-word indices
-            x_hot   = to_one_hot(x_train[sample_idx], vocab_size)   # (w, v, 1)
-            # y_train[i] is a scalar centre-word index → one-hot label (v,)
-            label   = np.zeros(vocab_size, dtype=np.float32)
-            label[y_train[sample_idx]] = 1.0
+            # 1. Prepare input
+            x_hots = []
+            labels = []
+            for _ in range(batch_size-1):
+                x_hots.append(to_one_hot(x_train[sample_idx], vocab_size))
+                lab = np.zeros(vocab_size, dtype=np.float32)
+                lab[y_train[sample_idx]] = 1.0
+                labels.append(lab)
+                next(perm)
+            x_hots.append(to_one_hot(x_train[sample_idx], vocab_size))
+            lab = np.zeros(vocab_size, dtype=np.float32)
+            lab[y_train[sample_idx]] = 1.0
+            labels.append(lab)
 
-            # --- one SGD step ---
+            # x_hot1   = to_one_hot(x_train[sample_idx], vocab_size)   # (w, v, 1)
+            x_hot = np.stack(x_hots)
+            label = np.stack(labels)
+
+            # 2. SGD step for batch
             sample_loss = opt.propagate(x_hot, label)
             epoch_loss += sample_loss
 
         avg_loss = epoch_loss / n_samples
-        iteration += 1
 
-        # Report every 10 iterations (and always on the first)
-        if iteration == 1 or iteration % 10 == 0:
+        if avg_loss < best_avg_loss:
+            opt.model.save_weights_fp32(f"./checkpoints/checkpoint_{epoch:06}_{avg_loss:.2f}.wght")
+
+        epoch += 1
+
+        # Report every 10 epochs (and always on the first)
+        if epoch == 1 or epoch % 10 == 0:
             train_acc = accuracy(cbow, x_train, y_train)
             val_acc   = accuracy(cbow, x_verify, y_verify)
             print(
-                f"[iter {iteration:>4}]  "
+                f"[epoch {epoch:>4}]  "
                 f"loss: {avg_loss:.4f}  "
                 f"train_acc: {train_acc:.3f}  "
                 f"val_acc: {val_acc:.3f}"
@@ -175,11 +191,17 @@ def vector_size_test(vocab_size: int, cbow: ContinuousBagOfWords):
         cbow (ContinuousBagOfWords): Model reference.
     """
     cbow.print_layers()
-    v3 = np.random.uniform(0.0, 1.0, (2, vocab_size, 1))
-    y: np.ndarray = cbow(v3)
-    print("Input vector matches expected shape.")
-    assert y.shape == (vocab_size, 1)
-    print("Output vector is of shape (v, 1)")
+    print("Shape testing...", end=" ")
+
+    v1 = np.random.uniform(0.0, 1.0, (2, vocab_size, 1))
+    y1: np.ndarray = cbow(v1)
+    assert y1.shape == (vocab_size, 1)
+
+    v2 = np.random.uniform(0.0, 1.0, (5, 2, vocab_size, 1))
+    y2: np.ndarray = cbow(v2)
+    assert y2.shape == (5, vocab_size, 1)
+
+    print("[ OK ]")
 
 
 def main():

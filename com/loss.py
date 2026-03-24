@@ -52,7 +52,7 @@ class CategoricalCrossEntropy(ILossFunction):
         labels: np.ndarray
     ) -> np.ndarray | float:
         input_clipped = np.clip(input, 1e-15, 1 - 1e-15)
-        return -np.sum(labels * np.log(input_clipped))
+        return -np.sum(labels * np.log(input_clipped).squeeze())
     
     def back(
         self,

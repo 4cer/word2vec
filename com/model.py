@@ -129,7 +129,6 @@ class IModel(ABC):
         """Serialize all layer weights to a binary checkpoint file."""
         with open(checkpoint_path, 'wb') as f:
             
-            
             f.write(_MAGIC)
             f.write(struct.pack('<II', _VERSION, len(self.layers)))
  

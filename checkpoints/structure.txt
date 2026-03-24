@@ -1,5 +1,7 @@
 Checkpoint format (all integers little-endian):
 
+  Suggested common file type: .wght
+
   File header:
     4B  magic       b'WGHT'
     4I  version     currently 1

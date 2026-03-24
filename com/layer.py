@@ -174,4 +174,3 @@ class Sigmoid(ILayer):
 
     def _identify(self) -> tuple[Any, Any, Any]:
         return (self.LayerType.SIGMOID, None, self)
-

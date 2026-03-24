@@ -10,7 +10,7 @@ import com.layer as layer
 
 
 def collapsed(output: np.ndarray, label: np.ndarray):
-    return output.ravel() - label.ravel()
+    return output.squeeze() - label
 
 COLLAPSE_TABLE = {
     (ILossFunction.LossFunctionType.CATEGORICALCROSSENTROPY, layer.ILayer.LayerType.SOFTMAX): collapsed
@@ -110,8 +110,11 @@ class SGD(IOptimizer):
         _linear_types = {layer.ILayer.LayerType.LINEAR, layer.ILayer.LayerType.AVERAGINGLINEAR}
         for lt, ref in graph_iter:
             if lt in _linear_types:
-                # 4. Update weights
-                ref.weights -= self.learning_rate * np.outer(dL.ravel(), ref.cache.ravel())
+                # 4a. Average across batches
+                avg2 = np.einsum('bi,bj->ij', dL, ref.cache.squeeze()) / dL.shape[0]
+                
+                # 4b. Update weights
+                ref.weights -= self.learning_rate * avg2
                 dL = ref.back(dL)
             else:
                 dL = ref.back(dL)

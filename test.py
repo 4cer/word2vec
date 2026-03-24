@@ -4,7 +4,7 @@ import types
 from tqdm import tqdm
 
 
-from com import model, layer, optimizer, loss
+from com import model, layer, optimizer, loss, scheduler
 
 
 class ContinuousBagOfWords(model.IModel):
@@ -183,6 +183,16 @@ def train(
         max_epochs=max_epochs,
         learning_rate=0.1,
     )
+
+    sched = scheduler.PlateauScheduler(
+        optimizer=opt,
+        factor=0.1,
+        threshold=1e-4,
+        min_lr=1e-10,
+        patience=10,
+        verbosity=2,
+        metric=scheduler.PlateauScheduler.PerformanceMetric.ACCURACY
+    )
     
     opt.build_graph_once()
 
@@ -208,6 +218,7 @@ def train(
 
         epoch += 1
         val_acc = accuracy(cbow, x_verify, y_verify)
+        sched.step(accuracy=val_acc)
         if val_acc > best_val_accuracy:
             best_val_accuracy = val_acc
             checkpoint = f"./checkpoints/checkpoint_{epoch:06}_{val_acc:.8f}.wght"

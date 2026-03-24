@@ -10,7 +10,7 @@ import com.layer as layer
 
 
 def collapsed(output: np.ndarray, label: np.ndarray):
-    return output.squeeze() - label
+    return output.squeeze(axis=-1) - label
 
 COLLAPSE_TABLE = {
     (ILossFunction.LossFunctionType.CATEGORICALCROSSENTROPY, layer.ILayer.LayerType.SOFTMAX): collapsed
@@ -120,3 +120,4 @@ class SGD(IOptimizer):
                 dL = ref.back(dL)
 
         return loss_val
+    

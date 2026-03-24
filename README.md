@@ -9,12 +9,12 @@ activation functions and loss functions.
 # About the model
 A Continuous Bag of Words (CBOW) model is implemented as an example. This uses
 the autoencoder architecture. In training, the context of a word to be predicted
-(n surrounding words) are fed fed in parallel, through the first layer, which is
+(n surrounding words) are fed in parallel through the first layer, which is
 smaller than the size of the dictionary and averaged. The resulting vector is
 then fed through to another layer the size of the original dictionary and then
-softmax activation layer.
+a softmax activation layer.
 
-After training is complete. the output layer and activation is discarded, and
+After training is complete, the output layer and activation is discarded, and
 the result of the first hidden layer is the embedding. While the loss function
 adequately measures reconstruction quality, the quality of embeddings has to be
 assessed separately.
@@ -29,13 +29,14 @@ functions and loss functions.
 - Pure numpy implementation.
 - Declarative interface inspired by PyTorch.
 - Stochastic Gradient Descent (SGD) optimizer with collapsed CCE+Softmax
-gradient.
+gradient and batch support.
 - Schedulers
     - LinearScheduler: decrease LR over time as training progresses, up
     to selected epoch.
-    - (TODO) PlateuScheduler: decrease LR as loss plateaus, with configurable
+    - (TODO) PlateauScheduler: decrease LR as loss plateaus, with configurable
     patience.
 - Saving and loading weights to binary checkpoint files (`.wght` format).
+- Automatic best-checkpoint saving during training.
 - Backprop graph building with merging of common last activation/loss
 combinations.
 
@@ -63,9 +64,9 @@ are `x` (space-separated context word indices) and `y` (centre word index).
 ## Training
 Run `test.py` from the repository root. The script loads the processed dataset,
 instantiates a `ContinuousBagOfWords` model, and trains it with SGD for the
-configured number of iterations, printing loss and accuracy every 10 epochs.
-Weights are not saved automatically; call `model.save_weights_fp32(path)` after
-training to write a checkpoint.
+configured number of epochs, printing loss and accuracy every 5 epochs.
+The best checkpoint by average loss is saved automatically to `./checkpoints/`
+after each epoch that improves on the previous best.
 
 ## Inference
 Load a saved checkpoint with `model.load_weights_fp32(path)`, then discard
@@ -81,7 +82,6 @@ Walla
 Possible improvements in performance might be:
 - Implementing GPU training and inference using APIs such as CUDA, Vulkan, ROCm
 or OpenCL.
-- 
 
 ## Known Issues and Limitations
 - `PlateauScheduler` is not yet implemented.

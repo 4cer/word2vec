@@ -16,6 +16,97 @@ _VERSION = 1
 
 
 class IModel(ABC):
+    """Abstract interface class for ML models.
+
+    Abstract interface for a model container that manages layers, forward
+    execution, optional caching, and checkpoint (de)serialization.
+
+    This class defines the minimal runtime contract for model objects composed
+    of ILayer instances. It centralizes:
+    - A registry of layers and their identifying metadata (used for weight
+    loading and saving and building propagation graphs).
+    - The forward entry point used by callers (via call).
+    - Optional graph tracing and per-layer forward caching hooks used during
+    execution to build computation graphs or retain intermediate activations.
+    - Checkpoint file format-aware weight loading and saving in 32-bit float
+    format.
+
+    Attributes
+    ---
+    layers : list[tuple[ILayer.LayerType, Any, ILayer]]
+        Ordered list describing the model structure. Each entry is a tuple of
+        (layer_type, shape_or_None, layer_ref) where:
+        - layer_type (ILayer.LayerType) identifies the layer implementation.
+        - shape_or_None (tuple[int, ...] | None) is the expected weight shape
+        for this layer or None if the layer has no persisted weights.
+        - layer_ref (ILayer) is the live layer object whose weights will be
+        read/written during checkpoint operations.
+
+    caching : Callable[[ILayer, numpy.ndarray], None]
+        Hook invoked by layers to record forward activations for later
+        backpropagation. Defaults to a no-op (no caching). Calling
+        enable_caching() on layers or the model should switch this to
+        a caching implementation.
+
+    handle_graph : Callable[[ILayer.LayerType], None]
+        Hook invoked by layers to register their type with an externally
+        provided computation graph. Defaults to a no-op. Enabled by calling
+        enable_graph_tracing().
+        
+    graph : list[ILayer.LayerType] | None
+        Optional list used as the target computation graph when graph tracing
+        is enabled. When None, graph tracing is disabled.
+        
+    Methods
+    ---
+    __call__(x) -> Any:
+        Forward entry point; dispatches to the concrete model's _forward
+        implementation. Keeps caller-facing API consistent across models.
+
+    _forward(x) -> numpy.ndarray:
+        Abstract method that must be implemented by subclasses to define the
+        model-specific forward computation. It should iterate over self.layers
+        and invoke layer forward methods, using self.caching and self.handle_graph
+        as appropriate.
+
+    enable_graph_tracing(graph: list[ILayer.LayerType], persistent_graph: bool = True) -> None:
+        Enable graph-tracing mode. Subsequent layer registrations will be
+        appended to the provided `graph` list via self.handle_graph. If
+        persistent_graph is False the expectation is that the consumer will
+        manage clearing the graph between runs; when True the graph is treated
+        as persistent across runs.
+
+    disable_graph_tracing() -> None:
+        Disable graph tracing and reset the graph handling hook to a no-op.
+
+    cache(layer: ILayer, y: numpy.ndarray) -> None:
+        Record a (layer, activation) pair into an internal forward_graph list.
+        This is used when collecting forward activations for backpropagation.
+        The forward_graph list is created on first use.
+
+    register_in_graph(tag: ILayer.LayerType) -> None:
+        Append a layer type tag to the currently enabled graph. Raises a
+        RuntimeError if graph tracing was not enabled.
+
+    nope_caching(_layer: ILayer, _y: numpy.ndarray) -> None:
+        Default no-op caching implementation.
+
+    nope_graph(tag: ILayer.LayerType) -> None:
+        Default no-op graph registration implementation.
+
+    load_weights_fp32(checkpoint_path: str) -> None:
+        Read a binary checkpoint file and copy contained 32-bit float weights
+        into the model's registered layers.
+
+        See project_root/checkpoint/structure.txt for the binary file format.
+
+    save_weights_fp32(checkpoint_path: str) -> None:
+        Serialize the current model weights into a binary checkpoint file as
+        contiguous float32 arrays.
+        
+        See project_root/checkpoint/structure.txt for the binary file format.
+
+    """
     def __init__(self) -> None:
         self.layers: list[tuple[ILayer.LayerType, Any, ILayer]] = []
         self.caching = self.nope_caching
@@ -65,6 +156,26 @@ class IModel(ABC):
         The model structure must be fully initialised before this method is
         called. A RuntimeError is raised on any structural mismatch so a silent
         mis-load is impossible.
+
+        File format specification can be found at:
+        
+        \t`project_root/checkpoint/structure.txt`
+
+        Args:
+            checkpoint_path (str): File path pointing to a saved checkpoint.
+
+        Raises:
+            RuntimeError: Incorrect magic numbers at the start of the file.
+            RuntimeError: Checkpoint file version magic number mismatch with
+                `_VERSION` value.
+            RuntimeError: Structural error: mismatch of layer count.
+            RuntimeError: Structural error: Not enough layers in file.
+            RuntimeError: Structural error: Incorrect layer type, in respect to
+                the layout set by the _forward override for this model.
+            RuntimeError: Structural error: Expected weights for this layer,
+                found None.
+            RuntimeError: Structural error: Layer shape mismatch checkpoint vs
+                model.
         """
         with open(checkpoint_path, 'rb') as f:
  
@@ -126,7 +237,18 @@ class IModel(ABC):
                 np.copyto(layer_ref.weights, loaded)
 
     def save_weights_fp32(self, checkpoint_path: str) -> None:
-        """Serialize all layer weights to a binary checkpoint file."""
+        """Save weights of the currect state as a checkpoint file.
+
+        Serialize the current model weights into a binary checkpoint file as
+        contiguous float32 arrays.
+
+        File format specification can be found at:
+
+        \t`project_root/checkpoint/structure.txt`
+
+        Args:
+            checkpoint_path (str): File path pointing to save the state to.
+        """ 
         with open(checkpoint_path, 'wb') as f:
             
             f.write(_MAGIC)

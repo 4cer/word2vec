@@ -18,6 +18,44 @@ COLLAPSE_TABLE = {
 
 
 class IOptimizer(ABC):
+    """Abstract optimizer interface for training models.
+
+    Defines the minimal contract required for optimizer implementations that drive
+    parameter updates for a model given a loss function. Optimizers are responsible
+    for orchestrating forward passes, loss evaluation, gradient propagation, and
+    applying updates to ILayer parameters according to a chosen optimization
+    algorithm.
+
+    Attributes
+    ---
+        model : IModel
+            The model instance whose parameters this optimizer will update.
+        loss : ILossFunction
+            Loss function used to evaluate predictions and compute gradients.
+        max_epochs : int
+            Maximum number of training epochs to run. A value <= 0 indicates no
+            epoch limit (training controlled externally).
+        learning_rate : float
+            Base step size used when applying parameter updates.
+        built_graph_once : bool
+            Internal flag indicating whether any required graph-building or setup
+            that must run once (e.g., tracing or allocation of optimizer state)
+            has already been performed.
+
+    Methods
+    ---
+        set_learning_rate(learning_rate: float) -> None:
+            Update the optimizer's learning rate. Implementations should adjust any
+            internal state that depends on the learning rate (e.g., momentum
+            buffers scaled by step size) when called.
+
+        propagate(x: numpy.ndarray, labels: numpy.ndarray) -> float:
+            Execute a single training step: run a forward pass through `self.model`
+            on input `x`, compute the loss against `labels`, run backpropagation,
+            and apply parameter updates according to the optimizer algorithm.
+            Returns the scalar loss value for the provided batch.
+
+    """
     def __init__(
         self,
         model: IModel, 

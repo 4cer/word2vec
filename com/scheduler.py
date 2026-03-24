@@ -8,6 +8,30 @@ if TYPE_CHECKING:
 
 
 class IScheduler(ABC):
+    """Abstract learning-rate scheduler interface.
+
+    Schedulers encapsulate policies for modifying an optimizer's learning rate
+    over time (per-epoch, per-step, or based on metrics). They are thin
+    coordinators that mutate the attached IOptimizer.learning_rate (and any
+    optimizer-internal state that depends on it) according to a scheduling rule.
+
+    Attributes
+    ---
+        optimizer : IOptimizer
+            The optimizer instance whose learning rate the scheduler will adjust.
+
+    Methods
+    ---
+        step(**kwargs) -> None:
+            Advance the scheduler by one step. The meaning of a "step" depends on
+            the concrete scheduler implementation (e.g., epoch-based, batch-based,
+            metric-triggered). Optional keyword arguments may include:
+            - epoch (int): current epoch index
+            - metric (float): validation metric to base adjustments on
+            - step (int): global step count
+            Implementations should document which kwargs they accept and how they
+            affect scheduling behavior.
+    """
     def __init__(
             self,
             optimizer: IOptimizer
@@ -33,7 +57,7 @@ class LinearScheduler(IScheduler):
 
         self.step_number = 0
 
-    def step(self, **kwargs) -> None:
+    def step(self, **_) -> None:
         self.step_number += 1
         if self.step_number > self.until_epoch:
             return

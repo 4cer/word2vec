@@ -11,6 +11,67 @@ if TYPE_CHECKING:
 
 
 class ILayer(ABC):
+    """ Abstract interface model layers.
+
+    Represents any and all operations performed on tensors in forward operation
+    of a model, together with the gradient-derived backward behavior for
+    backpropagation. Exposes a layer self-identification framework to facilitate
+    programmatic backpropagation graph building and the collapsing of common
+    combinations with loss functions.
+    
+    Common layers include:
+    - averaging fully connected.
+    - linear or fully connected.
+    - SoftMax activation function.
+    - Rectified Linear Unit (ReLU).
+
+    The primary idea of layer objects is wrapping any and all operations of
+    tensor propagation.
+
+    Attributes
+    ---
+        on_call (Callable[[np.ndarray], np.ndarray])
+            Current call handler (forward or forward_caching).
+        model (IModel)
+            Reference to the owner model.
+        _cache (Optional[np.ndarray])
+            Internal cache of forward propagation, used in backpropagation.
+
+    Methods
+    ---
+        enable_caching() -> None:
+            Switch call handler to caching-enabled forward.
+
+        disable_caching() -> None:
+            Switch call to non-caching forward call handler.
+
+        __call__(input: np.ndarray) -> np.ndarray:
+            Dispatch to the active forward implementation.
+
+        forward(input: np.ndarray) -> np.ndarray:
+            Compute layer output (no caching). Must be implemented by
+            subclasses.
+
+        forward_caching(input: np.ndarray) -> np.ndarray:
+            Compute layer output and update cache. Must be implemented by
+            subclasses.
+
+        back(input: np.ndarray) -> np.ndarray:
+            Backpropagate gradient. Must be implemented by subclasses.
+
+        graph_register() -> None:
+            Register nodes/ops with a computation graph. Must be implemented by
+            subclasses.
+            
+        _identify() -> tuple[Any, Any, Any]:
+            Return identifying metadata used when registering the layer with the
+            model.
+
+    Sublasses
+    ---
+        LayerType (Enum)
+            Enumeration of all implemented layer classes.
+    """
     class LayerType(Enum):
         LINEAR = 0
         RELU = 1

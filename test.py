@@ -39,7 +39,7 @@ class ContinuousBagOfWords(model.IModel):
 
         Returns:
             np.ndarray: Pobabilities for each word in vocab to be the middle
-            word.
+                word.
         """
         x = self.linear1(x)
         x = self.linear2(x)
@@ -54,6 +54,31 @@ def load_dataset(
         train_path=r"dataset\processed\train.csv",
         test_path=r"dataset\processed\test.csv"
 ):
+    """Loads processed dataset
+
+    Retrieves both the training and test subsets of the dataset, packages them
+    into numpy arrays and returns in predictable order.
+
+    Expects a header and for each datapoint to be formatted as such:
+    ```
+        {x1 x2 x3 ... x_2w-2 x_2w-1 x_2w},{x_n}
+    ```
+
+    Args:
+        train_path (regexp, optional): Relative or absolute path to the training
+            fraction of data in csv format.
+            Defaults to r"dataset\processed\train.csv".
+        test_path (regexp, optional): Relative or absolute path to the test
+            fraction of data in csv format.
+            Defaults to r"dataset\processed\test.csv".
+
+    Returns
+    -------
+    tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]
+        Four numpy arrays:
+        - first pair: X_train, Y_train
+        - second pair: X_test, Y_test
+    """
     print("Loading dataset...", end=" ")
     def read_csv(path):
         with open(path, newline="", encoding="utf-8") as f:
@@ -76,6 +101,7 @@ def load_dataset(
 def get_vocab_size(
         vocab_path=r"dataset\processed\vocab.json",
 ) -> int:
+    """Read the vocab file to retrieve the vocab size."""
     with open(vocab_path, "r", encoding="utf-8") as f:
         vocab = json.load(f)
     return vocab["vocab_size"]
@@ -86,6 +112,14 @@ def to_one_hot(indices: np.ndarray, vocab_size: int) -> np.ndarray:
 
     Each integer index becomes a 1-hot vector of length vocab_size, then gets
     an extra size-1 axis so the shape matches what _forward() expects.
+
+    Args:
+        indices (np.ndarray): Indices to translate into one-hot vectors.
+        vocab_size (int): Expected of one-hot vectors, derived from vocabulary
+            size.
+
+    Returns:
+        np.ndarray: _description_
     """
     w = len(indices)
     one_hot = np.zeros((w, vocab_size, 1), dtype=np.float32)
@@ -110,8 +144,35 @@ def train(
         y_train: np.ndarray,
         x_verify: np.ndarray,
         y_verify: np.ndarray,
-        batch_size: int = 50
+        batch_size: int = 50,
+        max_epochs: int = 500
 ) -> None:
+    """Execute training flow for the input model.
+
+    In general, this function is designed to be safe to stop prematurely, after
+    achieving the desired level of accuracy. Simply use Ctrl+C to stop, after
+    a checkpoint of sufficient quality is saved.
+
+    Args:
+        cbow (ContinuousBagOfWords): _description_
+        x_train (np.ndarray): Sets of indices of words in the vocabulary in
+            window-sized neighborhood of y label. Training fraction.
+
+        y_train (np.ndarray): Indices of words in the vocabulary serving as
+            labels for the neighborhood sets in x. Training fraction.
+
+        x_verify (np.ndarray): Sets of indices of words in the vocabulary in
+            window-sized neighborhood of y label. Verification fraction.
+
+        y_verify (np.ndarray): Indices of words in the vocabulary serving as
+            labels for the neighborhood sets in x. Verification fraction.
+
+        batch_size (int, optional): Amount of x,y pairs to average gradient
+            changes across. Defaults to 50.
+
+        max_epochs (int, optional): Amount of total runs through the training
+            dataset to cut off at. Defaults to 500.
+    """
     print("Starting training...")
     vocab_size = cbow.dictionary_size
     n_samples  = len(x_train)
@@ -119,7 +180,7 @@ def train(
     opt = optimizer.SGD(
         model=cbow,
         loss=loss.CategoricalCrossEntropy(),
-        max_epochs=200,
+        max_epochs=max_epochs,
         learning_rate=0.1,
     )
     
@@ -145,20 +206,18 @@ def train(
             sample_loss = opt.propagate(x_hot, label)
             epoch_loss += sample_loss
 
+        epoch += 1
         val_acc = accuracy(cbow, x_verify, y_verify)
         if val_acc > best_val_accuracy:
             best_val_accuracy = val_acc
-            checkpoint = f"./checkpoints/checkpoint_{epoch:06}_{val_acc:.2f}.wght"
+            checkpoint = f"./checkpoints/checkpoint_{epoch:06}_{val_acc:.8f}.wght"
             print("Saving checkpoint", checkpoint)
             opt.model.save_weights_fp32(f"./checkpoints/checkpoint_{epoch:06}_{val_acc:.2f}.wght")
-
-        epoch += 1
 
         # Report every 10 epochs (and always on the first)
         if epoch == 1 or epoch % 10 == 0:
             train_acc = accuracy(cbow, x_train, y_train)
             avg_loss = epoch_loss / n_samples
-            # val_acc   = accuracy(cbow, x_verify, y_verify)
             print(
                 f"[epoch {epoch:>4}]  "
                 f"loss: {avg_loss:.4f}  "
@@ -167,21 +226,14 @@ def train(
             )
 
 
-def inference_tests(
-        cbow: ContinuousBagOfWords,
-        x_verify: np.ndarray,
-        y_verify: np.ndarray,
-) -> None:
-    acc = accuracy(cbow, x_verify, y_verify)
-    print(f"\nFinal validation accuracy: {acc:.4f}")
-
-
 def vector_size_test(vocab_size: int, cbow: ContinuousBagOfWords):
-    """Throw an exception upon input shape mismatch.
+    """Simple model tests for in/out shapes.
+
+    Tests only forward propagation. Fails fast upon mismatches.
 
     Args:
         vocab_size (int): Amount of words in vocabulary.
-        cbow (ContinuousBagOfWords): Model reference.
+        cbow (ContinuousBagOfWords): Reference to model object.
     """
     cbow.print_layers()
     print("Shape testing...", end=" ")
@@ -195,6 +247,28 @@ def vector_size_test(vocab_size: int, cbow: ContinuousBagOfWords):
     assert y2.shape == (5, vocab_size, 1)
 
     print("[ OK ]")
+
+
+def inference_tests(
+        cbow: ContinuousBagOfWords,
+        x_verify: np.ndarray,
+        y_verify: np.ndarray,
+) -> None:
+    """Test post-training accuracy.
+
+    Used for the assessment of the final state of the model.
+
+    Args:
+        cbow (ContinuousBagOfWords): Reference to model object.
+
+        x_verify (np.ndarray): Sets of indices of words in the vocabulary in
+            window-sized neighborhood of y label. Verification fraction.
+
+        y_verify (np.ndarray): Indices of words in the vocabulary serving as
+            labels for the neighborhood sets in x. Verification fraction.
+    """
+    acc = accuracy(cbow, x_verify, y_verify)
+    print(f"\nFinal validation accuracy: {acc:.4f}")
 
 
 def main():

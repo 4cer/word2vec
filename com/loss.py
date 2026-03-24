@@ -5,6 +5,41 @@ from enum import Enum
 
 
 class ILossFunction(ABC):
+    """ Abstract interface for loss functions.
+
+    Represents any and all loss function calculation methodology performed on
+    model output tensors in forward operation, together with the gradient-derived
+    backward behavior for backpropagation. Exposes a loss self-identification
+    framework to facilitate programmatic backpropagation graph building and the
+    collapsing of common combinations with loss functions.
+    
+    Common loss functions include:
+    - Categorical Cross-Entropy (CCE).
+    - Binary Cross-Entropy (CE).
+    - Mean Square Error (MSE).
+    - Root Mean Square Error (RMSE).
+
+    Methods
+    ---
+        __call__(input: np.ndarray) -> np.ndarray:
+            TODO Dispatch to the forward implementation.
+
+        forward() -> np.ndarray | float:
+            Compute loss value. Must be implemented by subclasses.
+
+        back(input: np.ndarray) -> np.ndarray:
+            Backpropagate gradient. Must be implemented by subclasses.
+            
+        identify() -> tuple[Any, Any, Any]:
+            Return identifying metadata used when registering the layer with the
+            model.
+
+    Sublasses
+    ---
+        LossFunctionType (Enum)
+            Enumeration of all implemented loss function classes.
+    """
+        
     class LossFunctionType(Enum):
         CROSSENTROPY = 0
         CATEGORICALCROSSENTROPY = 1

@@ -24,8 +24,8 @@ assessed separately.
 [Derivation process](DERIVATION.md)
 
 # Features
-- Modularity, allowing for adding further activation layer types and activation
-functions later.
+- Modularity, allowing further addition of layer types, schedulers, activation
+functions and loss functions.
 - Pure numpy implementation.
 - Declarative interface inspired by PyTorch.
 - Stochastic Gradient Descent (SGD) optimizer with collapsed CCE+Softmax
@@ -107,7 +107,7 @@ or OpenCL.
 - <input type="checkbox" disabled checked> Implement data preparation via
 Jupyter notebook
 - <input type="checkbox" disabled checked> Implement main script flow
-- <input type="checkbox" disabled> Implement batching
+- <input type="checkbox" disabled checked> Implement batching
     - <input type="checkbox" disabled checked> Load dataset into numpy arrays
     - <input type="checkbox" disabled checked> Train using SGD
     - <input type="checkbox" disabled> Test

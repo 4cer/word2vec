@@ -50,10 +50,10 @@ combinations.
 # Running
 ## Environment setup
 ### Quick setup
-`conda env create -f environment.yml`
+`conda env create -f environment.yml` --prefix ./.conda
 
 ### Exact reproduction of a known-good environment
-`conda env create -f environment.lock.yml`
+`conda env create -f environment.lock.yml` --prefix ./.conda
 
 ## Data preparation
 Run the data preparation notebook to tokenize the raw corpus, build the

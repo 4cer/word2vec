@@ -33,7 +33,7 @@ gradient and batch support.
 - Schedulers
     - LinearScheduler: decrease LR over time as training progresses, up
     to selected epoch.
-    - (TODO) PlateauScheduler: decrease LR as loss plateaus, with configurable
+    - PlateauScheduler: decrease LR as loss plateaus, with configurable
     patience.
 - Saving and loading weights to binary checkpoint files (`.wght` format).
 - Automatic best-checkpoint saving during training.
@@ -84,7 +84,6 @@ Possible improvements in performance might be:
 or OpenCL.
 
 ## Known Issues and Limitations
-- `PlateauScheduler` is not yet implemented.
 - Biases are not implemented in the `Linear` layer.
 
 # TODO
@@ -103,7 +102,7 @@ or OpenCL.
     known combinations
     - <input type="checkbox" disabled checked> Save the graph for backprop
 - <input type="checkbox" disabled checked> Implement Linear Scheduler
-- <input type="checkbox" disabled> Implement Plateau Scheduler
+- <input type="checkbox" disabled checked> Implement Plateau Scheduler
 - <input type="checkbox" disabled checked> Implement data preparation via
 Jupyter notebook
 - <input type="checkbox" disabled checked> Implement main script flow

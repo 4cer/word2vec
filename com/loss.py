@@ -22,14 +22,14 @@ class ILossFunction(ABC):
     Methods
     ---
         __call__(input: np.ndarray) -> np.ndarray:
-            TODO Dispatch to the forward implementation.
+            Dispatches to the forward implementation.
 
         forward() -> np.ndarray | float:
             Compute loss value. Must be implemented by subclasses.
 
         back(input: np.ndarray) -> np.ndarray:
             Backpropagate gradient. Must be implemented by subclasses.
-            
+
         identify() -> tuple[Any, Any, Any]:
             Return identifying metadata used when registering the layer with the
             model.
@@ -39,10 +39,20 @@ class ILossFunction(ABC):
         LossFunctionType (Enum)
             Enumeration of all implemented loss function classes.
     """
-        
     class LossFunctionType(Enum):
         CROSSENTROPY = 0
         CATEGORICALCROSSENTROPY = 1
+
+    def __call__(
+        self,
+        input: np.ndarray,
+        labels: np.ndarray
+    ) -> Any:
+        self.forward(
+            input=input,
+            labels=labels
+        )
+    
     @abstractmethod
     def forward(
         self,

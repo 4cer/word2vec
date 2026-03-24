@@ -58,7 +58,7 @@ class IScheduler(ABC):
     def step(self, **kwargs) -> None:...
 
     def _logg(self, old: float, new: float) -> None:
-        print("Adjusting learning_rate {old:.4f} -> {new:.4f}")
+        print(f"Adjusting learning_rate {old:.4f} -> {new:.4f}")
 
     def _nope(self, old: float, new: float) -> None:
         pass

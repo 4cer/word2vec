@@ -14,7 +14,7 @@ class ContinuousBagOfWords(model.IModel):
     ) -> None:
         super().__init__()
         self.dictionary_size = dictionary_size
-        self.linear1 = layer.Linear(self, dictionary_size, hidden_size)
+        self.linear1 = layer.AveragingLinear(self, dictionary_size, hidden_size)
         self.linear2 = layer.Linear(self, hidden_size, dictionary_size)
         self.softmax = layer.SoftMax(self)
 
@@ -41,8 +41,6 @@ class ContinuousBagOfWords(model.IModel):
             word.
         """
         x = self.linear1(x)
-        x = x.mean(axis=-3)
-
         x = self.linear2(x)
         x = self.softmax(x)
         return x

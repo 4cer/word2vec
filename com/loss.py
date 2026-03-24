@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from typing import Any
+from enum import Enum
 
 
 class ILossFunction(ABC):
-    class LossFunctionType:
+    class LossFunctionType(Enum):
         CROSSENTROPY = 0
         CATEGORICALCROSSENTROPY = 1
     @abstractmethod

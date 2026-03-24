@@ -10,7 +10,7 @@ import com.layer as layer
 
 
 def collapsed(output: np.ndarray, label: np.ndarray):
-    return output - label
+    return output.ravel() - label.ravel()
 
 COLLAPSE_TABLE = {
     (ILossFunction.LossFunctionType.CATEGORICALCROSSENTROPY, layer.ILayer.LayerType.SOFTMAX): collapsed
@@ -68,7 +68,6 @@ class SGD(IOptimizer):
         
         self.built_graph_once = True
 
-
     def set_learning_rate(self, learning_rate: float):
         self.learning_rate = learning_rate
 
@@ -83,7 +82,6 @@ class SGD(IOptimizer):
         2. Compute loss.
         3. Backward pass (uses graph built by build_graph_once).
         4. Update Linear weights in-place.
-        
 
         Args:
             x (np.ndarray): model output vector.
@@ -94,45 +92,28 @@ class SGD(IOptimizer):
         """
         if not self.built_graph_once:
             self.build_graph_once()
-            
-        output: np.ndarray = self.model(x)
-
-        loss_value: float = float(self.loss.forward(output, labels))
-
+ 
+        # 1 and 2: Forward and loss
+        output = self.model(x)
+        loss_val = float(self.loss.forward(output, labels))
+ 
+        # Initial gradient + collapsed-layer skip
         if self._collapse_fn is not None:
-            grad: np.ndarray = self._collapse_fn(output, labels)
-            start_idx = 1
+            dL = self._collapse_fn(output, labels)
+            graph_iter = iter(self._graph)
+            next(graph_iter)  # skip the collapsed activation
         else:
-            grad = np.atleast_1d(
-                np.array(self.loss.back(output, labels), dtype=np.float32)
-            )
-            start_idx = 0
+            dL = self.loss.back(output, labels)
+            graph_iter = iter(self._graph)
  
-        for lt, layer_ref in self._graph[start_idx:]:
-            grad = layer_ref.back(grad)
-
-        if self._collapse_fn is not None:
-            grad = self._collapse_fn(output, labels)
-            walk_start = 1
-        else:
-            grad = np.atleast_1d(
-                np.array(self.loss.back(output, labels), dtype=np.float32)
-            )
-            walk_start = 0
+        # 3. Back propagation
+        _linear_types = {layer.ILayer.LayerType.LINEAR, layer.ILayer.LayerType.AVERAGINGLINEAR}
+        for lt, ref in graph_iter:
+            if lt in _linear_types:
+                # 4. Update weights
+                ref.weights -= self.learning_rate * np.outer(dL.ravel(), ref.cache.ravel())
+                dL = ref.back(dL)
+            else:
+                dL = ref.back(dL)
  
-        for lt, layer_ref in self._graph[walk_start:]:
-            from com.layer import Linear
-            if lt == layer_ref.LayerType.LINEAR:
-                assert isinstance(layer_ref, Linear)
-
-        for lt, layer_ref in self._graph[walk_start:]:
-            from com.layer import Linear
-            if lt == layer_ref.LayerType.LINEAR:
-                assert isinstance(layer_ref, Linear)
-
-                weight_grad = np.outer(grad, layer_ref.cache)
-                layer_ref.weights -= self.learning_rate * weight_grad
- 
-            grad = layer_ref.back(grad)
-        
-        return loss_value
+        return loss_val

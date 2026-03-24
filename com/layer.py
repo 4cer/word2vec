@@ -16,6 +16,7 @@ class ILayer(ABC):
         RELU = 1
         SOFTMAX = 2
         SIGMOID = 3
+        AVERAGINGLINEAR = 4
 
     def __init__(self, model: IModel) -> None:
         self.on_call = self.forward
@@ -90,6 +91,23 @@ class Linear(ILayer):
 
     def _identify(self) -> tuple[Any, Any, Any]:
         return (self.LayerType.LINEAR, self.weights.shape, self)
+
+
+class AveragingLinear(Linear):
+    def forward(self, input: np.ndarray) -> np.ndarray:
+        averaged = input.mean(axis=-3)
+        return np.matmul(self.weights, averaged)
+ 
+    def forward_caching(self, input: np.ndarray) -> np.ndarray:
+        averaged = input.mean(axis=-3)
+        self.cache = np.copy(averaged)
+        return np.matmul(self.weights, averaged)
+ 
+    def graph_register(self) -> None:
+        self.model.handle_graph(self.LayerType.AVERAGINGLINEAR)
+ 
+    def _identify(self) -> tuple[Any, Any, Any]:
+        return (self.LayerType.AVERAGINGLINEAR, self.weights.shape, self)
 
 
 class ReLU(ILayer):

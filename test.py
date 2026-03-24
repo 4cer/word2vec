@@ -179,9 +179,9 @@ def vector_size_test(vocab_size: int, cbow: ContinuousBagOfWords):
     cbow.print_layers()
     v3 = np.random.uniform(0.0, 1.0, (2, vocab_size, 1))
     y: np.ndarray = cbow(v3)
-    print("Vector shape matches expected input shape.")
+    print("Input vector matches expected shape.")
     assert y.shape == (vocab_size, 1)
-    print("Output shape is of shape (v, 1)")
+    print("Output vector is of shape (v, 1)")
 
 
 def main():

@@ -77,18 +77,7 @@ through `linear1` to retrieve their embedding vectors.
 ## PCA of embeddings
 Walla
 
-# Known Issues and Limitations
-- `Linear.forward` writes the matmul result back into the input buffer
-(`out=input`), so `layer.cache` captures the layer's *output*, not its *input*.
-The weight-gradient outer product in `SGD.propagate` therefore uses the output
-as a stand-in for the input. This is consistent internally but will diverge from
-the mathematically correct gradient once non-linear activations precede a Linear
-layer. Fix: cache the pre-matmul input separately.
-- `SoftMax.forward_caching` currently computes a sigmoid instead of a softmax
-(copy-paste error from `Sigmoid`). Since the CCE+Softmax gradient is collapsed
-and `SoftMax.back` is never called in normal operation, this does not affect
-training, but it would produce wrong outputs if the cache were inspected
-directly.
+## Known Issues and Limitations
 - `PlateauScheduler` is not yet implemented.
 - Biases are not implemented in the `Linear` layer.
 

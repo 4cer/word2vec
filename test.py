@@ -1,6 +1,7 @@
 import numpy as np
 import csv, argparse, json
 import types
+from tqdm import tqdm
 
 
 from com import model, layer, optimizer, loss
@@ -109,7 +110,7 @@ def train(
         y_train: np.ndarray,
         x_verify: np.ndarray,
         y_verify: np.ndarray,
-        batch_size: int = 5
+        batch_size: int = 50
 ) -> None:
     print("Starting training...")
     vocab_size = cbow.dictionary_size
@@ -132,7 +133,7 @@ def train(
  
         perm = np.random.permutation(n_samples)
         
-        for batch_start in range(0, n_samples, batch_size):
+        for batch_start in tqdm(range(0, n_samples, batch_size)):
             batch_indices = perm[batch_start : batch_start + batch_size]
  
             # 1. Prepare batch

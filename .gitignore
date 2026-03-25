@@ -220,3 +220,6 @@ __marimo__/
 
 # Source Datasets
 dataset/processed
+
+# Generic checkpoints
+checkpoints/checkpoint_*

@@ -20,8 +20,7 @@ adequately measures reconstruction quality, the quality of embeddings has to be
 assessed separately.
 
 ## Derivation of backpropagation gradients for CBOW
-
-[Derivation process](DERIVATION.md)
+[The derivation process is explained in](DERIVATION.md)
 
 # Features
 - Modularity, allowing further addition of layer types, schedulers, activation
@@ -97,6 +96,9 @@ saved automatically to `./checkpoints/` after each epoch that improves on the
 previous best. Training can be safely interrupted with `Ctrl+C` at any time;
 the most recent best checkpoint will be preserved.
 
+### Checkpoint file structure
+[The checkpoint file structure is explained in DERIVATION.md](checkpoints/STRUCTURE.md)
+
 ## 5. Inference
 Load a saved checkpoint with `model.load_weights_fp32(path)`, then discard
 `linear2` and `softmax` — the rows of `linear1.weights` are the trained word
@@ -126,39 +128,42 @@ through `linear1` to retrieve their embedding vectors.
 
 ### Key file descriptions
  
-**`test.py`** — The main script and the only file you need to run for training. It
-defines `ContinuousBagOfWords` (a concrete `IModel` subclass), wires together the
-dataset loader, one-hot encoder, SGD optimizer, and plateau scheduler, and runs the
-full train → checkpoint → evaluate loop. Run this from the repository root after
-data preparation.
+**`test.py`** — The main script and the only file you need to run for training.
+It defines `ContinuousBagOfWords` (a concrete `IModel` subclass), wires together
+the dataset loader, one-hot encoder, SGD optimizer, and plateau scheduler, and
+runs the full train → checkpoint → evaluate loop. Run this from the repository
+root after data preparation.
  
-**`com/model.py`** — Foundation of the framework. `IModel` manages the ordered layer
-registry, caching hooks, graph-tracing hooks, and checkpoint (de)serialisation in a
-custom binary `.wght` format. All concrete models inherit from this.
+**`com/model.py`** — Foundation of the framework. `IModel` manages the ordered
+layer registry, caching hooks, graph-tracing hooks, and checkpoint
+(de)serialisation in a custom binary `.wght` format. All concrete models inherit
+from this.
  
-**`com/layer.py`** — All layer types live here. `ILayer` defines the forward/caching/back
-interface and the `LayerType` enum used for graph building and serialisation.
-`AveragingLinear` is CBOW-specific: it averages context word vectors before
-the matrix multiply, handling the CBOW pooling step implicitly.
+**`com/layer.py`** — All layer types live here. `ILayer` defines the
+forward/caching/back interface and the `LayerType` enum used for graph building
+and serialisation. `AveragingLinear` is CBOW-specific: it averages context word
+vectors before the matrix multiply, handling the CBOW pooling step implicitly.
  
-**`com/optimizer.py`** — `SGD` builds a reversed layer graph once, then for each batch
-runs forward, computes the collapsed CCE+Softmax gradient (skipping the numerically
-expensive Jacobian), and updates weights via `einsum`-based batch averaging.
-`COLLAPSE_TABLE` maps `(loss_type, last_layer_type)` pairs to their fused gradient
-functions for extensibility.
+**`com/optimizer.py`** — `SGD` builds a reversed layer graph once, then for each
+batch runs forward, computes the collapsed CCE+Softmax gradient (skipping the
+numerically expensive Jacobian), and updates weights via `einsum`-based batch
+averaging. `COLLAPSE_TABLE` maps `(loss_type, last_layer_type)` pairs to their
+fused gradient functions for extensibility.
  
-**`com/scheduler.py`** — `PlateauScheduler` watches a chosen metric (accuracy or loss)
-and multiplies the learning rate by `factor` after `patience` epochs without
-improvement. `LinearScheduler` anneals the rate linearly to a target over a fixed
-number of epochs.
+**`com/scheduler.py`** — `PlateauScheduler` watches a chosen metric (accuracy or
+loss) and multiplies the learning rate by `factor` after `patience` epochs
+without improvement. `LinearScheduler` anneals the rate linearly to a target
+over a fixed number of epochs.
  
-**`data_prep.ipynb`** — Run once before training. Reads the raw text8 corpus, applies
-frequency filtering (`MIN_FREQ = 5`) and Word2Vec subsampling, builds a JSON vocab
-map, and writes windowed `(X, y)` pairs to `train.csv` and `test.csv`.
+**`data_prep.ipynb`** — Run once before training. Reads the raw text8 corpus,
+applies frequency filtering (`MIN_FREQ = 5`) and Word2Vec subsampling, builds a
+JSON vocab map, and writes windowed `(X, y)` pairs to `train.csv` and
+`test.csv`.
  
-**`checkpoints/structure.txt`** — Documents the `.wght` binary format: magic bytes
-`WGHT`, version, layer count, then per-layer records with type, shape, and raw
-float32 weights. Activation layers write a zero-length record to keep indices aligned.
+**`checkpoints/structure.txt`** — Documents the `.wght` binary format: magic
+bytes `WGHT`, version, layer count, then per-layer records with type, shape, and
+raw float32 weights. Activation layers write a zero-length record to keep
+indices aligned.
 
 # Results
 ## PCA of embeddings
@@ -179,31 +184,35 @@ Misc:
   implemented.
 
 # TODO
-- [x] Model weight init
-    - [x] Random weights
-    - [x] Weights from file
-- [x] Save weights to file
-- [x] Implement loss functions
+- [x] Model weight init.
+    - [x] Random weights.
+    - [x] Weights from file.
+- [x] Save weights to file.
+- [x] Implement loss functions.
 - [x] Implement SGD Optimizer:
-    - [x] Optimizer: Make graph on first model pass
-        - [x] Model and Layer: register in graph
-    - [x] Add loss and disable graph making
-    - [x] Solve graph backwards, merging known combinations
-    - [x] Save the graph for backprop
-- [x] Implement Linear Scheduler
-- [x] Implement Plateau Scheduler
-- [x] Implement data preparation via Jupyter notebook
-- [x] Implement main script flow
-- [x] Implement batching
-    - [x] Load dataset into numpy arrays
-    - [x] Train using SGD
-    - [ ] Test
-- [ ] Unless static graph enabled, rebuild at the start of each
-      optimizer.propagate
+    - [x] Optimizer: Make graph on first model pass.
+        - [x] Model and Layer: register in graph.
+    - [x] Add loss and disable graph making.
+    - [x] Solve graph backwards, merging known combinations.
+    - [x] Save the graph for backprop.
+- [x] Implement Linear Scheduler.
+- [x] Implement Plateau Scheduler.
+- [x] Implement data preparation via Jupyter notebook.
+- [x] Implement main script flow.
+- [x] Implement batching.
+    - [x] Load dataset into numpy arrays.
+    - [x] Train using SGD.
+    - [ ] Test.
 - [ ] Central script to dispatch to tests, training, inference or combination
       using argparse.
-- [ ] Implement embedding quality check in Jupyter
-- [ ] Implement biases in Linear layer
+- [ ] Implement embedding quality check in Jupyter.
+- [ ] Implement variable layer precision and update the STRUCTURE documentation.
+  - [ ] Implement tensor-level precision level encoding in checkpoint
+        serialization.
+  - [ ] Implement tensor precision-aware deserialization.
+- [ ] Unless static graph enabled, rebuild at the start of each
+      `optimizer.propagate`.
+- [ ] Implement biases in Linear layer.
 
 # Used Sources
 - text8 dataset — [HuggingFace mirror](https://huggingface.co/roshbeed/text8-dataset)

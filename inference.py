@@ -1,6 +1,8 @@
-from test import ContinuousBagOfWords, get_vocab_size
 from pathlib import Path
 from typing import Optional
+
+
+from training import ContinuousBagOfWords, get_vocab_size
 
 
 def newest_file_with_ext(directory: str, ext: str) -> Optional[Path]:

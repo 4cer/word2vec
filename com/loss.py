@@ -48,7 +48,7 @@ class ILossFunction(ABC):
         input: np.ndarray,
         labels: np.ndarray
     ) -> Any:
-        self.forward(
+        return self.forward(
             input=input,
             labels=labels
         )
@@ -72,6 +72,9 @@ class ILossFunction(ABC):
 
 
 class CrossEntropy(ILossFunction):
+    def __init__(self) -> None:
+        raise NotImplementedError("CrossEntropy not implemented!")
+    
     def forward(
         self,
         input: np.ndarray,

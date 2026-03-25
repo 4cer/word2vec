@@ -52,23 +52,40 @@ assessed separately.
 
 # Running
 ## Environment setup
-### Quick setup
+### 0. Installing LFS
+```
+git lfs install
+```
+
+### 1. Pulling repository contents into current directory
+```
+git clone https://github.com/4cer/word2vec.git .
+```
+If LFS is installed, the submodule dataset will be pulled automatically into
+`./dataset/repo` as part of the cloning operation.
+
+Otherwise it will be necessary to return to step 1, then here and run:
+```
+git submodule update dataset/repo
+```
+
+### 2a. Quick setup
 ```
 conda env create -f environment.yml --prefix ./.conda
 ```
  
-### Exact reproduction of a known-good environment
+### 2b. Exact reproduction of a known-good environment
 ```
 conda env create -f environment.lock.yml --prefix ./.conda
 ```
 
-## Data preparation
+## 3. Data preparation
 Run `data_prep.ipynb` to tokenise the raw corpus, build the vocabulary, and
 write the windowed context pairs to `dataset/processed/train.csv`, `test.csv`,
 and `vocab.json`. The CSV columns are `x` (space-separated context word
 indices) and `y` (centre word index).
 
-## Training
+## 4. Training
 Run `test.py` from the repository root:
 ```
 python test.py
@@ -80,7 +97,7 @@ saved automatically to `./checkpoints/` after each epoch that improves on the
 previous best. Training can be safely interrupted with `Ctrl+C` at any time;
 the most recent best checkpoint will be preserved.
 
-## Inference
+## 5. Inference
 Load a saved checkpoint with `model.load_weights_fp32(path)`, then discard
 `linear2` and `softmax` — the rows of `linear1.weights` are the trained word
 embeddings, indexed by vocabulary ID. Pass any sequence of context word indices
@@ -181,6 +198,10 @@ Misc:
     - [x] Load dataset into numpy arrays
     - [x] Train using SGD
     - [ ] Test
+- [ ] Unless static graph enabled, rebuild at the start of each
+      optimizer.propagate
+- [ ] Central script to dispatch to tests, training, inference or combination
+      using argparse.
 - [ ] Implement embedding quality check in Jupyter
 - [ ] Implement biases in Linear layer
 

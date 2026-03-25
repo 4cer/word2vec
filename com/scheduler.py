@@ -70,9 +70,10 @@ class LinearScheduler(IScheduler):
             optimizer: IOptimizer,
             lr_start: float,
             lr_stop: float,
-            until_epoch: int
+            until_epoch: int,
+            verbosity: int = 0
     ) -> None:
-        super().__init__(optimizer=optimizer)
+        super().__init__(optimizer=optimizer, verbosity=verbosity)
         self.lr_start: float = lr_start
         self.lr_stop: float = lr_stop
         self.until_epoch: int = until_epoch

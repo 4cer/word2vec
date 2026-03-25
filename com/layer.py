@@ -62,7 +62,7 @@ class ILayer(ABC):
         graph_register() -> None:
             Register nodes/ops with a computation graph. Must be implemented by
             subclasses.
-            
+
         _identify() -> tuple[Any, Any, Any]:
             Return identifying metadata used when registering the layer with the
             model.
@@ -123,6 +123,18 @@ class Linear(ILayer):
             out_size: int,
             in_size: int
     ) -> None:
+        """Linear layer constructor.
+        
+        When creating linear layers, it is important to remember that the
+        default shape for forward propagation is effectively transposed with
+        respect to the intuitive orientation. Hence the shape argument order is
+        reversed.
+
+        Args:
+            model (IModel): Model the layer is being added to.
+            out_size (int): The amount of output neurons.
+            in_size (int): The amount of input neurons.
+        """
         self.weights: np.ndarray = np.ndarray(
             (in_size, out_size),
             dtype=np.float32
@@ -173,13 +185,13 @@ class AveragingLinear(Linear):
 
 class ReLU(ILayer):
     def forward(self, input: np.ndarray) -> np.ndarray:
-        np.maximum(0, input, out=input)
-        return input
+        output = np.maximum(0, input)
+        return output
     
     def forward_caching(self, input: np.ndarray) -> np.ndarray:
-        np.maximum(0, input, out=input)
         self.cache = np.copy(input)
-        return input
+        output = np.maximum(0, input, out=input)
+        return output
 
     def back(self, input: np.ndarray) -> np.ndarray:
         if self.cache is None:
@@ -196,12 +208,14 @@ class ReLU(ILayer):
 
 class SoftMax(ILayer):
     def forward(self, input: np.ndarray) -> np.ndarray:
-        exp = np.exp(input)
+        shifted = input - np.max(input, axis=-2, keepdims=True)
+        exp = np.exp(shifted)
         return exp / np.sum(exp, axis=-2, keepdims=True)
     
     def forward_caching(self, input: np.ndarray) -> np.ndarray:
         self.cache = np.copy(input)
-        exp = np.exp(input)
+        shifted = input - np.max(input, axis=-2, keepdims=True)
+        exp = np.exp(shifted)
         return exp / np.sum(exp, axis=-2, keepdims=True)
 
     def back(self, input: np.ndarray) -> np.ndarray:
@@ -226,7 +240,7 @@ class Sigmoid(ILayer):
         return x
 
     def back(self, input: np.ndarray) -> np.ndarray:
-        if not self.cache:
+        if self.cache is None:
             raise ValueError("Sigmoid: Failed to find cached forward pass!")
         return input * self.cache * (1 - self.cache)
     

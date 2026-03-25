@@ -286,7 +286,8 @@ def main():
     vsize = get_vocab_size()
 
     cbow = ContinuousBagOfWords(
-        dictionary_size=vsize
+        dictionary_size=vsize,
+        hidden_size=vsize//20
     )
 
     vector_size_test(vsize, cbow)

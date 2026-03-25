@@ -1,4 +1,4 @@
-# Checkpoint Format — `.wght`
+# Checkpoint Format: `.wght`
 
 All integers are little-endian. The format is self-describing: every layer slot
 is always present, so the position index is always aligned even for activation
@@ -39,7 +39,7 @@ header with `ndim = 0` and no weight bytes. Their slot is still counted, so
 | 3     | SIGMOID          |
 | 4     | AVERAGINGLINEAR  |
 
-## Concrete example — CBOW with V = 500, N = 25, C = 4
+## Concrete example: CBOW with V = 500, N = 25, C = 4
 
 Parameters:
 - Vocabulary size `V = 500`
@@ -52,7 +52,7 @@ The model has three layers in registration order:
 |-------|-----------------|----------------|-----------------------|
 | 0     | AVERAGINGLINEAR | (500, 25)      | 500 × 25 × 4 = 50 000 |
 | 1     | LINEAR          | (25, 500)      | 25 × 500 × 4 = 50 000 |
-| 2     | SOFTMAX         | —              | 0                     |
+| 2     | SOFTMAX         | -              | 0                     |
 
 Total weight bytes: 100 000. File size: 12 (header) + 3 × 12 (layer headers)
 + 2 × ndim × 4 (shape fields) + 100 000 (floats) = **100 060 bytes** (≈ 98 KB).

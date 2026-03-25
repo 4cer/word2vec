@@ -20,7 +20,7 @@ adequately measures reconstruction quality, the quality of embeddings has to be
 assessed separately.
 
 ## Derivation of backpropagation gradients for CBOW
-[The derivation process is explained in](DERIVATION.md)
+[The derivation process is explained in DERIVATION.md](DERIVATION.md).
 
 # Features
 - Modularity, allowing further addition of layer types, schedulers, activation
@@ -97,70 +97,70 @@ previous best. Training can be safely interrupted with `Ctrl+C` at any time;
 the most recent best checkpoint will be preserved.
 
 ### Checkpoint file structure
-[The checkpoint file structure is explained in DERIVATION.md](checkpoints/STRUCTURE.md)
+[The checkpoint file structure is explained in STRUCTURE.md](checkpoints/STRUCTURE.md).
 
 ## 5. Inference
 Load a saved checkpoint with `model.load_weights_fp32(path)`, then discard
-`linear2` and `softmax` — the rows of `linear1.weights` are the trained word
+`linear2` and `softmax` - the rows of `linear1.weights` are the trained word
 embeddings, indexed by vocabulary ID. Pass any sequence of context word indices
 through `linear1` to retrieve their embedding vectors.
 
 # Project Structure
 ```
 4cer-word2vec/
-├── README.md               — This file
-├── DERIVATION.md           — Step-by-step math for CBOW backpropagation gradients
-├── data_prep.ipynb         — Jupyter notebook: tokenise corpus, build vocab, write CSV pairs
-├── test.py                 — Main entry point: defines ContinuousBagOfWords, training loop,
+├── README.md               - This file
+├── DERIVATION.md           - Step-by-step math for CBOW backpropagation gradients
+├── data_prep.ipynb         - Jupyter notebook: tokenise corpus, build vocab, write CSV pairs
+├── test.py                 - Main entry point: defines ContinuousBagOfWords, training loop,
 │                             shape tests, and inference evaluation
-├── environment.yml         — Minimal conda environment spec (Python 3.11, numpy, jupyter)
-├── environment.lock.yml    — Fully pinned conda environment for exact reproduction
+├── environment.yml         - Minimal conda environment spec (Python 3.11, numpy, jupyter)
+├── environment.lock.yml    - Fully pinned conda environment for exact reproduction
 ├── checkpoints/
-│   └── structure.txt       — Binary format spec for .wght checkpoint files
-└── com/                    — Core library package
-    ├── __init__.py         — Re-exports all submodules (layer, loss, model, optimizer, scheduler)
-    ├── layer.py            — ILayer ABC; Linear, AveragingLinear, ReLU, SoftMax, Sigmoid
-    ├── loss.py             — ILossFunction ABC; CategoricalCrossEntropy, CrossEntropy stubs
-    ├── model.py            — IModel ABC; checkpoint save/load (.wght binary format)
-    ├── optimizer.py        — IOptimizer ABC; SGD with collapsed CCE+Softmax gradient
-    └── scheduler.py        — IScheduler ABC; LinearScheduler, PlateauScheduler
+│   └── structure.txt       - Binary format spec for .wght checkpoint files
+└── com/                    - Core library package
+    ├── __init__.py         - Re-exports all submodules (layer, loss, model, optimizer, scheduler)
+    ├── layer.py            - ILayer ABC; Linear, AveragingLinear, ReLU, SoftMax, Sigmoid
+    ├── loss.py             - ILossFunction ABC; CategoricalCrossEntropy, CrossEntropy stubs
+    ├── model.py            - IModel ABC; checkpoint save/load (.wght binary format)
+    ├── optimizer.py        - IOptimizer ABC; SGD with collapsed CCE+Softmax gradient
+    └── scheduler.py        - IScheduler ABC; LinearScheduler, PlateauScheduler
 ```
 
 ### Key file descriptions
  
-**`test.py`** — The main script and the only file you need to run for training.
+**`test.py`:** The main script and the only file you need to run for training.
 It defines `ContinuousBagOfWords` (a concrete `IModel` subclass), wires together
 the dataset loader, one-hot encoder, SGD optimizer, and plateau scheduler, and
 runs the full train → checkpoint → evaluate loop. Run this from the repository
 root after data preparation.
  
-**`com/model.py`** — Foundation of the framework. `IModel` manages the ordered
+**`com/model.py`:** Foundation of the framework. `IModel` manages the ordered
 layer registry, caching hooks, graph-tracing hooks, and checkpoint
 (de)serialisation in a custom binary `.wght` format. All concrete models inherit
 from this.
  
-**`com/layer.py`** — All layer types live here. `ILayer` defines the
+**`com/layer.py`:** All layer types live here. `ILayer` defines the
 forward/caching/back interface and the `LayerType` enum used for graph building
 and serialisation. `AveragingLinear` is CBOW-specific: it averages context word
 vectors before the matrix multiply, handling the CBOW pooling step implicitly.
  
-**`com/optimizer.py`** — `SGD` builds a reversed layer graph once, then for each
+**`com/optimizer.py`:** `SGD` builds a reversed layer graph once, then for each
 batch runs forward, computes the collapsed CCE+Softmax gradient (skipping the
 numerically expensive Jacobian), and updates weights via `einsum`-based batch
 averaging. `COLLAPSE_TABLE` maps `(loss_type, last_layer_type)` pairs to their
 fused gradient functions for extensibility.
  
-**`com/scheduler.py`** — `PlateauScheduler` watches a chosen metric (accuracy or
+**`com/scheduler.py`:** `PlateauScheduler` watches a chosen metric (accuracy or
 loss) and multiplies the learning rate by `factor` after `patience` epochs
 without improvement. `LinearScheduler` anneals the rate linearly to a target
 over a fixed number of epochs.
  
-**`data_prep.ipynb`** — Run once before training. Reads the raw text8 corpus,
+**`data_prep.ipynb`:** Run once before training. Reads the raw text8 corpus,
 applies frequency filtering (`MIN_FREQ = 5`) and Word2Vec subsampling, builds a
 JSON vocab map, and writes windowed `(X, y)` pairs to `train.csv` and
 `test.csv`.
  
-**`checkpoints/structure.txt`** — Documents the `.wght` binary format: magic
+**`checkpoints/structure.txt`:** Documents the `.wght` binary format: magic
 bytes `WGHT`, version, layer count, then per-layer records with type, shape, and
 raw float32 weights. Activation layers write a zero-length record to keep
 indices aligned.
@@ -215,6 +215,6 @@ Misc:
 - [ ] Implement biases in Linear layer.
 
 # Used Sources
-- text8 dataset — [HuggingFace mirror](https://huggingface.co/roshbeed/text8-dataset)
+- text8 dataset - [HuggingFace mirror](https://huggingface.co/roshbeed/text8-dataset)
 - [micrograd by Andrej Karpathy](https://github.com/karpathy/micrograd)
 - [Efficient Estimation of Word Representations in Vector Space](https://arxiv.org/abs/1301.3781)

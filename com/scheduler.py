@@ -27,7 +27,6 @@ class IScheduler(ABC):
             - 1: Log nothing.
             - 2: Log when change is applied.
 
-
     Methods
     ---
         step(**kwargs) -> None:
@@ -39,6 +38,15 @@ class IScheduler(ABC):
             - step (int): global step count
             Implementations should document which kwargs they accept and how they
             affect scheduling behavior.
+
+        def _log_adjustment(self, old: float, new: float) -> None:
+            Log learning rate adjustment to stdout prefixed by scheduler type.
+
+        def _noop_adjustment(self, old: float, new: float) -> None:
+            Default no-op logging implementation for silent verbosity levels.
+
+        _identify() -> tuple[Any, Any, Any]:
+            Return scheduler name when logging learning rate adjustment.
     """
     def __init__(
             self,
@@ -49,19 +57,22 @@ class IScheduler(ABC):
         self.verbosity = verbosity
 
         self.logger = [
-            self._nope,
-            self._nope,
-            self._logg
+            self._noop_adjustment,
+            self._noop_adjustment,
+            self._log_adjustment
         ]
 
     @abstractmethod
     def step(self, **kwargs) -> None:...
 
-    def _logg(self, old: float, new: float) -> None:
-        print(f"Adjusting learning_rate {old:.4f} -> {new:.4f}")
+    def _log_adjustment(self, old: float, new: float) -> None:
+        print(f"{self._identify} Adjusting learning_rate {old:.4f} -> {new:.4f}")
 
-    def _nope(self, old: float, new: float) -> None:
+    def _noop_adjustment(self, old: float, new: float) -> None:
         pass
+
+    @abstractmethod
+    def _identify(self) -> str: ...
 
 
 class LinearScheduler(IScheduler):
@@ -87,6 +98,9 @@ class LinearScheduler(IScheduler):
         progress: float = (self.step_number / self.until_epoch)
         new_lr: float = (1 - progress) * self.lr_start + progress * self.lr_stop
         self.optimizer.set_learning_rate(new_lr)
+
+    def _identify(self) -> str:
+        return "Linear scheduler:"
 
 
 class PlateauScheduler(IScheduler):
@@ -134,8 +148,11 @@ class PlateauScheduler(IScheduler):
         if self.last_fail_n >= self.patience:
             new_lr = self.optimizer.learning_rate * self.factor
             self.logger[self.verbosity](self.optimizer.learning_rate, new_lr)
-            self.optimizer.learning_rate = max(new_lr, self.min_lr)
+            self.optimizer.set_learning_rate(max(new_lr, self.min_lr))
             self.last_fail_n = 0
+
+    def _identify(self) -> str:
+        return "Plateau scheduler:"
     
     @staticmethod
     def _accuracy(value: float, epsilon: float, reference: float) -> bool:

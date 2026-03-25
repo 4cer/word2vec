@@ -84,14 +84,14 @@ class IModel(ABC):
         This is used when collecting forward activations for backpropagation.
         The forward_graph list is created on first use.
 
-    register_in_graph(tag: ILayer.LayerType) -> None:
+    _register_in_graph(tag: ILayer.LayerType) -> None:
         Append a layer type tag to the currently enabled graph. Raises a
         RuntimeError if graph tracing was not enabled.
 
-    nope_caching(_layer: ILayer, _y: numpy.ndarray) -> None:
+    _noop_caching(_layer: ILayer, _y: numpy.ndarray) -> None:
         Default no-op caching implementation.
 
-    nope_graph(tag: ILayer.LayerType) -> None:
+    _noop_graph(tag: ILayer.LayerType) -> None:
         Default no-op graph registration implementation.
 
     load_weights_fp32(checkpoint_path: str) -> None:
@@ -109,8 +109,8 @@ class IModel(ABC):
     """
     def __init__(self) -> None:
         self.layers: list[tuple[ILayer.LayerType, Any, ILayer]] = []
-        self.caching = self.nope_caching
-        self.handle_graph = self.nope_graph
+        self.caching = self._noop_caching
+        self.handle_graph = self._noop_graph
         self.graph: list[ILayer.LayerType] | None = None
 
     def __call__(self, x) -> Any:
@@ -126,11 +126,11 @@ class IModel(ABC):
     ) -> None:
         self.graph = graph
         self.persistent_graph = persistent_graph
-        self.handle_graph = self.register_in_graph
+        self.handle_graph = self._register_in_graph
 
     def disable_graph_tracing(self) -> None:
         self.graph = None
-        self.handle_graph = self.nope_graph
+        self.handle_graph = self._noop_graph
 
 
     def cache(self, layer: ILayer, y: np.ndarray) -> None:
@@ -138,15 +138,15 @@ class IModel(ABC):
             self.forward_graph: list[tuple[ILayer, np.ndarray]] = []
         self.forward_graph.append((layer, y))
 
-    def register_in_graph(self, tag: ILayer.LayerType) -> None:
+    def _register_in_graph(self, tag: ILayer.LayerType) -> None:
         if self.graph is None:
             raise RuntimeError("Graph not registered at registration time!")
         self.graph.append(tag)
 
-    def nope_caching(self, _layer: ILayer, _y: np.ndarray) -> None:
+    def _noop_caching(self, _layer: ILayer, _y: np.ndarray) -> None:
         pass
 
-    def nope_graph(self, tag: ILayer.LayerType) -> None:
+    def _noop_graph(self, tag: ILayer.LayerType) -> None:
         pass
 
     def load_weights_fp32(self, checkpoint_path: str) -> None:

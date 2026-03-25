@@ -52,7 +52,7 @@ class ILayer(ABC):
             Compute layer output (no caching). Must be implemented by
             subclasses.
 
-        forward_caching(input: np.ndarray) -> np.ndarray:
+        forward_cached(input: np.ndarray) -> np.ndarray:
             Compute layer output and update cache. Must be implemented by
             subclasses.
 
@@ -85,7 +85,7 @@ class ILayer(ABC):
         self.model.layers.append(self._identify())
 
     def enable_caching(self) -> None:
-        self.on_call = self.forward_caching
+        self.on_call = self.forward_cached
 
     def disable_caching(self) -> None:
         self.on_call = self.forward
@@ -104,7 +104,7 @@ class ILayer(ABC):
     def forward(self, input: np.ndarray) -> np.ndarray: ...
 
     @abstractmethod
-    def forward_caching(self, input: np.ndarray) -> np.ndarray: ...
+    def forward_cached(self, input: np.ndarray) -> np.ndarray: ...
 
     @abstractmethod
     def back(self, input: np.ndarray) -> np.ndarray: ...
@@ -151,7 +151,7 @@ class Linear(ILayer):
         output = np.matmul(self.weights, input)
         return output
     
-    def forward_caching(self, input: np.ndarray) -> np.ndarray:
+    def forward_cached(self, input: np.ndarray) -> np.ndarray:
         output = np.matmul(self.weights, input)
         self.cache = np.copy(input)
         return output
@@ -171,7 +171,7 @@ class AveragingLinear(Linear):
         averaged = input.mean(axis=-3)
         return np.matmul(self.weights, averaged)
 
-    def forward_caching(self, input: np.ndarray) -> np.ndarray:
+    def forward_cached(self, input: np.ndarray) -> np.ndarray:
         averaged = input.mean(axis=-3)
         self.cache = np.copy(averaged)
         return np.matmul(self.weights, averaged)
@@ -188,7 +188,7 @@ class ReLU(ILayer):
         output = np.maximum(0, input)
         return output
     
-    def forward_caching(self, input: np.ndarray) -> np.ndarray:
+    def forward_cached(self, input: np.ndarray) -> np.ndarray:
         self.cache = np.copy(input)
         output = np.maximum(0, input, out=input)
         return output
@@ -212,7 +212,7 @@ class SoftMax(ILayer):
         exp = np.exp(shifted)
         return exp / np.sum(exp, axis=-2, keepdims=True)
     
-    def forward_caching(self, input: np.ndarray) -> np.ndarray:
+    def forward_cached(self, input: np.ndarray) -> np.ndarray:
         self.cache = np.copy(input)
         shifted = input - np.max(input, axis=-2, keepdims=True)
         exp = np.exp(shifted)
@@ -234,7 +234,7 @@ class Sigmoid(ILayer):
     def forward(self, input: np.ndarray) -> np.ndarray:
         return 1 / (1 + np.exp(-input))
     
-    def forward_caching(self, input: np.ndarray) -> np.ndarray:
+    def forward_cached(self, input: np.ndarray) -> np.ndarray:
         x = 1 / (1 + np.exp(-input))
         self.cache = np.copy(x)
         return x

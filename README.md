@@ -20,7 +20,7 @@ adequately measures reconstruction quality, the quality of embeddings has to be
 assessed separately.
 
 ## Derivation of backpropagation gradients for CBOW
-[The derivation process is explained in](DERIVATION.md)
+[The derivation process is explained in DERIVATION.md](DERIVATION.md).
 
 # Features
 - Modularity, allowing further addition of layer types, schedulers, activation
@@ -97,7 +97,7 @@ previous best. Training can be safely interrupted with `Ctrl+C` at any time;
 the most recent best checkpoint will be preserved.
 
 ### Checkpoint file structure
-[The checkpoint file structure is explained in DERIVATION.md](checkpoints/STRUCTURE.md)
+[The checkpoint file structure is explained in STRUCTURE.md](checkpoints/STRUCTURE.md).
 
 ## 5. Inference
 Load a saved checkpoint with `model.load_weights_fp32(path)`, then discard

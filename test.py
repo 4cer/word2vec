@@ -51,8 +51,8 @@ class ContinuousBagOfWords(model.IModel):
 
 
 def load_dataset(
-        train_path=r"dataset\processed\train.csv",
-        test_path=r"dataset\processed\test.csv"
+        train_path="dataset/processed/train.csv",
+        test_path="dataset/processed/test.csv"
 ):
     """Loads processed dataset
 
@@ -67,10 +67,10 @@ def load_dataset(
     Args:
         train_path (regexp, optional): Relative or absolute path to the training
             fraction of data in csv format.
-            Defaults to r"dataset\processed\train.csv".
+            Defaults to r"dataset/processed/train.csv".
         test_path (regexp, optional): Relative or absolute path to the test
             fraction of data in csv format.
-            Defaults to r"dataset\processed\test.csv".
+            Defaults to r"dataset/processed/test.csv".
 
     Returns
     -------
@@ -99,7 +99,7 @@ def load_dataset(
 
 
 def get_vocab_size(
-        vocab_path=r"dataset\processed\vocab.json",
+        vocab_path="dataset/processed/vocab.json",
 ) -> int:
     """Read the vocab file to retrieve the vocab size."""
     with open(vocab_path, "r", encoding="utf-8") as f:
@@ -108,33 +108,54 @@ def get_vocab_size(
 
 
 def to_one_hot(indices: np.ndarray, vocab_size: int) -> np.ndarray:
-    """Convert a flat array of word indices (w,) into one-hot rows (w, v, 1).
-
+    """Convert word indices to one-hot vectors.
+     
+    Supports single samples of size (w,) or batches of size (b, w), turning them
+    into one-hot rows of shape (w, v, 1) and (b, w, v, 1) respectively, where:
+    - b: batch size
+    - w: window size * 2
+    - v: vocabulary size
+    
     Each integer index becomes a 1-hot vector of length vocab_size, then gets
     an extra size-1 axis so the shape matches what _forward() expects.
 
     Args:
-        indices (np.ndarray): Indices to translate into one-hot vectors.
-        vocab_size (int): Expected of one-hot vectors, derived from vocabulary
-            size.
+        indices (np.ndarray): Either shape (w,) for a single sample or (b, w)
+            for a batch.
+        vocab_size (int): Length of each one-hot vector.
 
     Returns:
-        np.ndarray: _description_
+        np.ndarray: Shape (w, v, 1) for a single sample, or (b, w, v, 1) for
+            a batch. dtype float32.
     """
-    w = len(indices)
-    one_hot = np.zeros((w, vocab_size, 1), dtype=np.float32)
-    one_hot[np.arange(w), indices, 0] = 1.0
-    return one_hot
+    batched = indices.ndim == 2
+    idx = indices if batched else indices[np.newaxis, :]   # (b, w)
+    b, w = idx.shape
+    one_hot = np.zeros((b, w, vocab_size, 1), dtype=np.float32)
+    one_hot[np.arange(b)[:, None], np.arange(w)[None, :], idx, 0] = 1.0
+    return one_hot if batched else one_hot[0]
 
 
-def accuracy(cbow: ContinuousBagOfWords, X: np.ndarray, y: np.ndarray) -> float:
+def accuracy(
+        cbow: ContinuousBagOfWords,
+        X: np.ndarray,
+        y: np.ndarray,
+        batch_size: int = 512
+) -> float:
     """Fraction of samples where argmax(output) == true label."""
     correct = 0
-    for indices, label in zip(X, y):
-        x_hot = to_one_hot(indices, cbow.dictionary_size)
-        pred = cbow(x_hot)
-        if np.argmax(pred) == label:
-            correct += 1
+
+    for batch_start in range(0, len(X), batch_size):
+        x_hot = to_one_hot(
+            indices=X[batch_start:batch_start + batch_size],
+            vocab_size=cbow.dictionary_size
+        )
+        pred_batch = cbow(x_hot) # (b, v, 1)
+        pred_batch = np.argmax(pred_batch, axis=-2) # (b,1)
+        label_batch = y[batch_start:batch_start + batch_size] # (b,)
+        
+        correct += np.sum(pred_batch == label_batch)
+
     return correct / len(y)
 
 
@@ -208,7 +229,7 @@ def train(
             batch_indices = perm[batch_start : batch_start + batch_size]
  
             # 1. Prepare batch
-            x_hot = np.stack([to_one_hot(x_train[i], vocab_size) for i in batch_indices])
+            x_hot = to_one_hot(x_train[batch_indices], vocab_size)
             label = np.zeros((len(batch_indices), vocab_size), dtype=np.float32)
             label[np.arange(len(batch_indices)), y_train[batch_indices]] = 1.0
  
@@ -238,7 +259,7 @@ def train(
 
 
 def vector_size_test(vocab_size: int, cbow: ContinuousBagOfWords):
-    """Simple model tests for in/out shapes.
+    """Simple smoke test for in/out shapes of processed tensors.
 
     Tests only forward propagation. Fails fast upon mismatches.
 
@@ -247,7 +268,7 @@ def vector_size_test(vocab_size: int, cbow: ContinuousBagOfWords):
         cbow (ContinuousBagOfWords): Reference to model object.
     """
     cbow.print_layers()
-    print("Shape testing...", end=" ")
+    print("Shape testing...", end=" ", flush=True)
 
     v1 = np.random.uniform(0.0, 1.0, (2, vocab_size, 1))
     y1: np.ndarray = cbow(v1)
@@ -256,6 +277,25 @@ def vector_size_test(vocab_size: int, cbow: ContinuousBagOfWords):
     v2 = np.random.uniform(0.0, 1.0, (5, 2, vocab_size, 1))
     y2: np.ndarray = cbow(v2)
     assert y2.shape == (5, vocab_size, 1)
+
+    print("[ OK ]")
+
+def accuracy_smoke_test(
+        cbow: ContinuousBagOfWords
+):
+    print("Smoke testing batched accuracy...", end=" ", flush=True)
+    shape = (1024,1)
+    X = np.random.randint(1, cbow.dictionary_size, size=shape, dtype=np.int32)
+    Y = np.zeros(shape, dtype=np.int32)
+    Y[0:512] = X[0:512]
+    acc = accuracy(
+        cbow=cbow,
+        X=X,
+        y=Y,
+        batch_size=64
+    )
+
+    assert acc == 0.5
 
     print("[ OK ]")
 
@@ -291,6 +331,8 @@ def main():
     )
 
     vector_size_test(vsize, cbow)
+
+    accuracy_smoke_test(cbow=cbow)
 
     X_train, y_train, X_test, y_test = load_dataset()
 

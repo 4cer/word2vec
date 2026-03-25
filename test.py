@@ -1,6 +1,5 @@
 import numpy as np
-import csv, argparse, json
-import types
+import csv, json
 from tqdm import tqdm
 
 
@@ -220,42 +219,46 @@ def train(
     epoch = 0
     best_val_accuracy = 0
 
-    while opt.max_epochs < 0 or epoch < opt.max_epochs:
-        epoch_loss = 0.0
- 
-        perm = np.random.permutation(n_samples)
-        
-        for batch_start in tqdm(range(0, n_samples, batch_size)):
-            batch_indices = perm[batch_start : batch_start + batch_size]
- 
-            # 1. Prepare batch
-            x_hot = to_one_hot(x_train[batch_indices], vocab_size)
-            label = np.zeros((len(batch_indices), vocab_size), dtype=np.float32)
-            label[np.arange(len(batch_indices)), y_train[batch_indices]] = 1.0
- 
-            # 2. SGD step for batch
-            sample_loss = opt.propagate(x_hot, label)
-            epoch_loss += sample_loss
+    try:
+        while opt.max_epochs < 0 or epoch < opt.max_epochs:
+            epoch_loss = 0.0
+    
+            perm = np.random.permutation(n_samples)
+            
+            for batch_start in tqdm(range(0, n_samples, batch_size)):
+                batch_indices = perm[batch_start : batch_start + batch_size]
+    
+                # 1. Prepare batch
+                x_hot = to_one_hot(x_train[batch_indices], vocab_size)
+                label = np.zeros((len(batch_indices), vocab_size), dtype=np.float32)
+                label[np.arange(len(batch_indices)), y_train[batch_indices]] = 1.0
+    
+                # 2. SGD step for batch
+                sample_loss = opt.propagate(x_hot, label)
+                epoch_loss += sample_loss
 
-        epoch += 1
-        val_acc = accuracy(cbow, x_verify, y_verify)
-        sched.step(accuracy=val_acc)
-        if val_acc > best_val_accuracy:
-            best_val_accuracy = val_acc
-            checkpoint = f"./checkpoints/checkpoint_{epoch:06}_{val_acc:.8f}.wght"
-            print("Saving checkpoint", checkpoint)
-            opt.model.save_weights_fp32(checkpoint)
+            epoch += 1
+            val_acc = accuracy(cbow, x_verify, y_verify)
+            sched.step(accuracy=val_acc)
+            if val_acc > best_val_accuracy:
+                best_val_accuracy = val_acc
+                checkpoint = f"./checkpoints/checkpoint_{epoch:06}_{val_acc:.8f}.wght"
+                print("Saving checkpoint", checkpoint)
+                opt.model.save_weights_fp32(checkpoint)
 
-        # Report every 10 epochs (and always on the first)
-        if epoch == 1 or epoch % 10 == 0:
-            train_acc = accuracy(cbow, x_train, y_train)
-            avg_loss = epoch_loss / n_samples
-            print(
-                f"[epoch {epoch:>4}]  "
-                f"loss: {avg_loss:.4f}  "
-                f"train_acc: {train_acc:.3f}  "
-                f"val_acc: {val_acc:.3f}"
-            )
+            # Report every 10 epochs (and always on the first)
+            if epoch == 1 or epoch % 10 == 0:
+                train_acc = accuracy(cbow, x_train, y_train)
+                avg_loss = epoch_loss / n_samples
+                print(
+                    f"[epoch {epoch:>4}]  "
+                    f"loss: {avg_loss:.4f}  "
+                    f"train_acc: {train_acc:.3f}  "
+                    f"val_acc: {val_acc:.3f}"
+                )
+    except KeyboardInterrupt:
+        print("Exitting on keyboard interrupt.")
+        exit()
 
 
 def vector_size_test(vocab_size: int, cbow: ContinuousBagOfWords):

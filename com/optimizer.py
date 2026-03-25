@@ -121,6 +121,11 @@ class SGD(IOptimizer):
         3. Backward pass (uses graph built by build_graph_once).
         4. Update Linear weights in-place.
 
+        Automatically builds static propagation graph.
+
+        TODO Unless static graph enabled, rebuild at the start of each
+        propagation
+
         Args:
             x (np.ndarray): model output vector.
             labels (np.ndarray): label 1-hot vector.
@@ -149,7 +154,7 @@ class SGD(IOptimizer):
         for lt, ref in graph_iter:
             if lt in _linear_types:
                 # 4a. Average across batches
-                avg2 = np.einsum('bi,bj->ij', dL, ref.cache.squeeze()) / dL.shape[0]
+                avg2 = np.einsum('bi,bj->ij', dL, ref.cache.squeeze(axis=-1)) / dL.shape[0]
                 
                 # 4b. Update weights
                 ref.weights -= self.learning_rate * avg2

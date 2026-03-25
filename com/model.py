@@ -127,7 +127,6 @@ class IModel(ABC):
         self.graph = graph
         self.persistent_graph = persistent_graph
         self.handle_graph = self.register_in_graph
-        pass
 
     def disable_graph_tracing(self) -> None:
         self.graph = None

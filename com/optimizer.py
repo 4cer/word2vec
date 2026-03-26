@@ -6,14 +6,15 @@ import numpy as np
 
 from com.loss import ILossFunction
 from com.model import IModel
-import com.layer as layer
+from com.layer import ILayer
+from com.enums import LossFunctionType, LayerType
 
 
-def collapsed(output: np.ndarray, label: np.ndarray):
+def collapsed(output: np.ndarray, label: np.ndarray) -> np.ndarray:
     return output.squeeze(axis=-1) - label
 
 COLLAPSE_TABLE = {
-    (ILossFunction.LossFunctionType.CATEGORICALCROSSENTROPY, layer.ILayer.LayerType.SOFTMAX): collapsed
+    (LossFunctionType.CATEGORICALCROSSENTROPY, LayerType.SOFTMAX): collapsed
 }
 
 
@@ -90,7 +91,7 @@ class SGD(IOptimizer):
     ) -> None:
         super().__init__(model, loss, max_epochs, learning_rate)
 
-        self._graph: list[tuple[layer.ILayer.LayerType, layer.ILayer]] = []
+        self._graph: list[tuple[LayerType, ILayer]] = []
         self._collapse_fn = None
 
     def build_graph_once(self):
@@ -150,17 +151,10 @@ class SGD(IOptimizer):
             graph_iter = iter(self._graph)
  
         # 3. Back propagation
-        _linear_types = {layer.ILayer.LayerType.LINEAR, layer.ILayer.LayerType.AVERAGINGLINEAR}
-        for lt, ref in graph_iter:
-            if lt in _linear_types:
-                # 4a. Average across batches
-                avg2 = np.einsum('bi,bj->ij', dL, ref.cache.squeeze(axis=-1)) / dL.shape[0]
-                
-                # 4b. Update weights
-                ref.weights -= self.learning_rate * avg2
-                dL = ref.back(dL)
-            else:
-                dL = ref.back(dL)
+        # type: Iterable[ILayer]
+        for _, ref in graph_iter:
+            ref.update_weights(dL, self.learning_rate)
+            dL = ref.back(dL)
 
         return loss_val
     

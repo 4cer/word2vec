@@ -1,11 +1,11 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from abc import abstractmethod, ABC
-from enum import Enum
 
 
 if TYPE_CHECKING:
     from com.optimizer import IOptimizer
+from com.enums import PerformanceMetric
 
 
 class IScheduler(ABC):
@@ -104,10 +104,6 @@ class LinearScheduler(IScheduler):
 
 
 class PlateauScheduler(IScheduler):
-    class PerformanceMetric(Enum):
-        ACCURACY = 0
-        LOSS = 1
-    
     def __init__(
             self,
             optimizer: IOptimizer,
@@ -127,9 +123,9 @@ class PlateauScheduler(IScheduler):
         self.threshold: float = threshold
         self.min_lr: float = min_lr
         
-        self.comparator = self._accuracy if metric == self.PerformanceMetric.ACCURACY else self._loss
-        self.test_for: str = "accuracy" if metric == self.PerformanceMetric.ACCURACY else "loss"
-        self.reference: float = 0 if metric == self.PerformanceMetric.ACCURACY else float("inf")
+        self.comparator = self._accuracy if metric == PerformanceMetric.ACCURACY else self._loss
+        self.test_for: str = "accuracy" if metric == PerformanceMetric.ACCURACY else "loss"
+        self.reference: float = 0 if metric == PerformanceMetric.ACCURACY else float("inf")
         self.last_fail_n: int = 0
 
 

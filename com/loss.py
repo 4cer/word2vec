@@ -1,11 +1,13 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from typing import Any
-from enum import Enum
+
+
+from com.enums import LossFunctionType
 
 
 class ILossFunction(ABC):
-    """ Abstract interface for loss functions.
+    """Abstract interface for loss functions.
 
     Represents any and all loss function calculation methodology performed on
     model output tensors in forward operation, together with the gradient-derived
@@ -24,8 +26,9 @@ class ILossFunction(ABC):
         __call__(input: np.ndarray) -> np.ndarray:
             Dispatches to the forward implementation.
 
-        forward() -> np.ndarray | float:
-            Compute loss value. Must be implemented by subclasses.
+        forward() -> np.ndarray:
+            Compute loss value(s). Always packed into np.ndarray. Must be
+            implemented by subclasses.
 
         back(input: np.ndarray) -> np.ndarray:
             Backpropagate gradient. Must be implemented by subclasses.
@@ -33,16 +36,7 @@ class ILossFunction(ABC):
         identify() -> tuple[Any, Any, Any]:
             Return identifying metadata used when registering the layer with the
             model.
-
-    Sublasses
-    ---
-        LossFunctionType (Enum)
-            Enumeration of all implemented loss function classes.
     """
-    class LossFunctionType(Enum):
-        CROSSENTROPY = 0
-        CATEGORICALCROSSENTROPY = 1
-
     def __call__(
         self,
         input: np.ndarray,
@@ -58,17 +52,17 @@ class ILossFunction(ABC):
         self,
         input: np.ndarray,
         labels: np.ndarray
-    ) -> np.ndarray | float: ...
+    ) -> np.ndarray: ...
 
     @abstractmethod
     def back(
         self,
         input: np.ndarray,
         labels: np.ndarray
-    ) -> np.ndarray | float: ...
+    ) -> np.ndarray: ...
 
     @abstractmethod
-    def identify(self) -> Any: ...
+    def identify(self) -> LossFunctionType: ...
 
 
 class CrossEntropy(ILossFunction):
@@ -79,18 +73,18 @@ class CrossEntropy(ILossFunction):
         self,
         input: np.ndarray,
         labels: np.ndarray
-    ) -> np.ndarray | float:
+    ) -> np.ndarray:
         raise NotImplementedError("CrossEntropy not implemented!")
     
     def back(
         self,
         input: np.ndarray,
         labels: np.ndarray
-    ) -> np.ndarray | float:
+    ) -> np.ndarray:
         raise NotImplementedError("CrossEntropy not implemented!")
     
-    def identify(self):
-        return ILossFunction.LossFunctionType.CROSSENTROPY    
+    def identify(self) -> LossFunctionType:
+        return LossFunctionType.CROSSENTROPY    
 
 
 class CategoricalCrossEntropy(ILossFunction):
@@ -98,7 +92,7 @@ class CategoricalCrossEntropy(ILossFunction):
         self,
         input: np.ndarray,
         labels: np.ndarray
-    ) -> np.ndarray | float:
+    ) -> np.ndarray:
         input_clipped = np.clip(input, 1e-15, 1 - 1e-15)
         return -np.sum(labels * np.log(input_clipped).squeeze(axis=-1))
     
@@ -106,9 +100,9 @@ class CategoricalCrossEntropy(ILossFunction):
         self,
         input: np.ndarray,
         labels: np.ndarray
-    ) -> np.ndarray | float:
+    ) -> np.ndarray:
         input_clipped = np.clip(input, 1e-15, 1 - 1e-15)
         return -labels / input_clipped
     
-    def identify(self):
-        return ILossFunction.LossFunctionType.CATEGORICALCROSSENTROPY
+    def identify(self) -> LossFunctionType:
+        return LossFunctionType.CATEGORICALCROSSENTROPY

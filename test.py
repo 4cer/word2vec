@@ -3,7 +3,7 @@ import csv, json
 from tqdm import tqdm
 
 
-from com import model, layer, optimizer, loss, scheduler
+from com import model, layer, optimizer, loss, scheduler, enums
 
 
 class ContinuousBagOfWords(model.IModel):
@@ -13,10 +13,27 @@ class ContinuousBagOfWords(model.IModel):
             hidden_size: int = 512
     ) -> None:
         super().__init__()
+
         self.dictionary_size = dictionary_size
-        self.linear1 = layer.AveragingLinear(self, dictionary_size, hidden_size)
-        self.linear2 = layer.Linear(self, hidden_size, dictionary_size)
-        self.softmax = layer.SoftMax(self)
+        self.linear1 = layer.AveragingLinear(
+            model=self,
+            out_size=dictionary_size,
+            in_size=hidden_size
+        )
+        self.linear2 = layer.Linear(
+            model=self,
+            out_size=hidden_size,
+            in_size=dictionary_size,
+            layer_purposes={
+                enums.LayerPurpose.TRAINING
+            }
+        )
+        self.softmax = layer.SoftMax(
+            model=self,
+            layer_purposes={
+                enums.LayerPurpose.TRAINING
+            }
+        )
 
         self.linear1.init_random(-0.5 / dictionary_size, 0.5 / dictionary_size)
         self.linear2.init_zeros()
@@ -211,7 +228,7 @@ def train(
         min_lr=1e-10,
         patience=10,
         verbosity=2,
-        metric=scheduler.PlateauScheduler.PerformanceMetric.ACCURACY
+        metric=enums.PerformanceMetric.ACCURACY
     )
     
     opt.build_graph_once()

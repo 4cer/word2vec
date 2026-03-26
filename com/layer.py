@@ -2,16 +2,17 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from abc import abstractmethod, ABC
 import numpy as np
-from enum import Enum
 from typing import Any
 
 
 if TYPE_CHECKING:
     from com.model import IModel
+from com.enums import LayerPurpose
+from com.enums import LayerType
 
 
 class ILayer(ABC):
-    """ Abstract interface model layers.
+    """Abstract interface model layers.
 
     Represents any and all operations performed on tensors in forward operation
     of a model, together with the gradient-derived backward behavior for
@@ -63,26 +64,23 @@ class ILayer(ABC):
             Register nodes/ops with a computation graph. Must be implemented by
             subclasses.
 
+        update_weights(self, dL: np.ndarray, learning_rate: float) -> None:
+            Virual method handling weight adjustment in a manner appropriate for
+            its type. Must be implemented by subclasses.
+
         _identify() -> tuple[Any, Any, Any]:
             Return identifying metadata used when registering the layer with the
             model.
-
-    Sublasses
-    ---
-        LayerType (Enum)
-            Enumeration of all implemented layer classes.
     """
-    class LayerType(Enum):
-        LINEAR = 0
-        RELU = 1
-        SOFTMAX = 2
-        SIGMOID = 3
-        AVERAGINGLINEAR = 4
-
-    def __init__(self, model: IModel) -> None:
+    def __init__(
+            self,
+            model: IModel,
+            layer_purposes: set[LayerPurpose] = {LayerPurpose.INFERENCE}
+    ) -> None:
         self.on_call = self.forward
-        self.model = model
+        self.model: IModel = model
         self.model.layers.append(self._identify())
+        self.layer_purposes: set[LayerPurpose] = layer_purposes
 
     def enable_caching(self) -> None:
         self.on_call = self.forward_cached
@@ -113,6 +111,9 @@ class ILayer(ABC):
     def graph_register(self) -> None: ...
 
     @abstractmethod
+    def update_weights(self, dL: np.ndarray, learning_rate: float) -> None: ...
+
+    @abstractmethod
     def _identify(self) -> tuple[Any, Any, Any]: ...
 
 
@@ -121,7 +122,8 @@ class Linear(ILayer):
             self,
             model: IModel,
             out_size: int,
-            in_size: int
+            in_size: int,
+            layer_purposes: set[LayerPurpose] = {LayerPurpose.INFERENCE}
     ) -> None:
         """Linear layer constructor.
         
@@ -134,12 +136,15 @@ class Linear(ILayer):
             model (IModel): Model the layer is being added to.
             out_size (int): The amount of output neurons.
             in_size (int): The amount of input neurons.
+            layer_purposes (set[LayerPurpose]): Tags regarding layer purpose.
+                This is used to filter layers, when choosing a subset to
+                serialize and deserialize.
         """
         self.weights: np.ndarray = np.ndarray(
             (in_size, out_size),
             dtype=np.float32
         )
-        super().__init__(model)
+        super().__init__(model, layer_purposes)
 
     def init_random(self, min, max):
         self.weights[:] = np.random.uniform(min, max, self.weights.shape).astype(np.float32)
@@ -157,13 +162,23 @@ class Linear(ILayer):
         return output
     
     def back(self, input: np.ndarray) -> np.ndarray:
+        if self.cache is None:
+            raise ValueError("Linear: Failed to find cached forward pass!")
         return (self.weights.T @ input.T).T
     
     def graph_register(self) -> None:
-        self.model.handle_graph(self.LayerType.LINEAR)
+        self.model.handle_graph(LayerType.LINEAR)
+
+    def update_weights(self, dL: np.ndarray, learning_rate: float) -> None:
+        if self.cache is None:
+            raise ValueError("Linear: Failed to find cached forward pass!")
+        # 4a. Average across batches
+        avg2 = np.einsum('bi,bj->ij', dL, self.cache.squeeze(axis=-1)) / dL.shape[0]
+        # 4b. Update weights
+        self.weights -= learning_rate * avg2
 
     def _identify(self) -> tuple[Any, Any, Any]:
-        return (self.LayerType.LINEAR, self.weights.shape, self)
+        return (LayerType.LINEAR, self.weights.shape, self)
 
 
 class AveragingLinear(Linear):
@@ -177,10 +192,13 @@ class AveragingLinear(Linear):
         return np.matmul(self.weights, averaged)
 
     def graph_register(self) -> None:
-        self.model.handle_graph(self.LayerType.AVERAGINGLINEAR)
+        self.model.handle_graph(LayerType.AVERAGINGLINEAR)
+
+    def update_weights(self, dL: np.ndarray, learning_rate: float) -> None:
+        pass
 
     def _identify(self) -> tuple[Any, Any, Any]:
-        return (self.LayerType.AVERAGINGLINEAR, self.weights.shape, self)
+        return (LayerType.AVERAGINGLINEAR, self.weights.shape, self)
 
 
 class ReLU(ILayer):
@@ -200,10 +218,13 @@ class ReLU(ILayer):
         return grad_x
     
     def graph_register(self) -> None:
-        self.model.handle_graph(self.LayerType.RELU)
+        self.model.handle_graph(LayerType.RELU)
+
+    def update_weights(self, dL: np.ndarray, learning_rate: float) -> None:
+        pass
 
     def _identify(self) -> tuple[Any, Any, Any]:
-        return (self.LayerType.RELU, None, self)
+        return (LayerType.RELU, None, self)
 
 
 class SoftMax(ILayer):
@@ -224,10 +245,13 @@ class SoftMax(ILayer):
         raise NotImplementedError("This case basically does not occur.")
     
     def graph_register(self) -> None:
-        self.model.handle_graph(self.LayerType.SOFTMAX)
+        self.model.handle_graph(LayerType.SOFTMAX)
+
+    def update_weights(self, dL: np.ndarray, learning_rate: float) -> None:
+        pass
 
     def _identify(self) -> tuple[Any, Any, Any]:
-        return (self.LayerType.SOFTMAX, None, self)
+        return (LayerType.SOFTMAX, None, self)
 
 
 class Sigmoid(ILayer):
@@ -245,7 +269,10 @@ class Sigmoid(ILayer):
         return input * self.cache * (1 - self.cache)
     
     def graph_register(self) -> None:
-        self.model.handle_graph(self.LayerType.SIGMOID)
+        self.model.handle_graph(LayerType.SIGMOID)
+
+    def update_weights(self, dL: np.ndarray, learning_rate: float) -> None:
+        pass
 
     def _identify(self) -> tuple[Any, Any, Any]:
-        return (self.LayerType.SIGMOID, None, self)
+        return (LayerType.SIGMOID, None, self)

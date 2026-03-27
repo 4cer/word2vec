@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from com.model import IModel
 from com.enums import LayerPurpose
 from com.enums import LayerType
+from com.enums import LayerPrecision
 
 
 class ILayer(ABC):
@@ -123,7 +124,8 @@ class Linear(ILayer):
             model: IModel,
             out_size: int,
             in_size: int,
-            layer_purposes: set[LayerPurpose] = {LayerPurpose.INFERENCE}
+            layer_purposes: set[LayerPurpose] = {LayerPurpose.INFERENCE},
+            layer_precision: LayerPrecision = LayerPrecision.FP32
     ) -> None:
         """Linear layer constructor.
         
@@ -142,7 +144,7 @@ class Linear(ILayer):
         """
         self.weights: np.ndarray = np.ndarray(
             (in_size, out_size),
-            dtype=np.float32
+            dtype=layer_precision.value
         )
         super().__init__(model, layer_purposes)
 
@@ -179,26 +181,6 @@ class Linear(ILayer):
 
     def _identify(self) -> tuple[Any, Any, Any]:
         return (LayerType.LINEAR, self.weights.shape, self)
-
-
-class AveragingLinear(Linear):
-    def forward(self, input: np.ndarray) -> np.ndarray:
-        averaged = input.mean(axis=-3)
-        return np.matmul(self.weights, averaged)
-
-    def forward_cached(self, input: np.ndarray) -> np.ndarray:
-        averaged = input.mean(axis=-3)
-        self.cache = np.copy(averaged)
-        return np.matmul(self.weights, averaged)
-
-    def graph_register(self) -> None:
-        self.model.handle_graph(LayerType.AVERAGINGLINEAR)
-
-    def update_weights(self, dL: np.ndarray, learning_rate: float) -> None:
-        pass
-
-    def _identify(self) -> tuple[Any, Any, Any]:
-        return (LayerType.AVERAGINGLINEAR, self.weights.shape, self)
 
 
 class ReLU(ILayer):
@@ -276,3 +258,23 @@ class Sigmoid(ILayer):
 
     def _identify(self) -> tuple[Any, Any, Any]:
         return (LayerType.SIGMOID, None, self)
+
+
+class AveragingLinear(Linear):
+    def forward(self, input: np.ndarray) -> np.ndarray:
+        averaged = input.mean(axis=-3)
+        return np.matmul(self.weights, averaged)
+
+    def forward_cached(self, input: np.ndarray) -> np.ndarray:
+        averaged = input.mean(axis=-3)
+        self.cache = np.copy(averaged)
+        return np.matmul(self.weights, averaged)
+
+    def graph_register(self) -> None:
+        self.model.handle_graph(LayerType.AVERAGINGLINEAR)
+
+    def update_weights(self, dL: np.ndarray, learning_rate: float) -> None:
+        pass
+
+    def _identify(self) -> tuple[Any, Any, Any]:
+        return (LayerType.AVERAGINGLINEAR, self.weights.shape, self)

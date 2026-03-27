@@ -261,7 +261,7 @@ def train(
                 best_val_accuracy = val_acc
                 checkpoint = f"./checkpoints/checkpoint_{epoch:06}_{val_acc:.8f}.wght"
                 print("Saving checkpoint", checkpoint)
-                opt.model.save_weights_fp32(checkpoint)
+                opt.model.save_weights(checkpoint)
 
             # Report every 10 epochs (and always on the first)
             if epoch == 1 or epoch % 10 == 0:

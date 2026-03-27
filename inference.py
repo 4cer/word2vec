@@ -33,7 +33,7 @@ def main():
     if newest_model is None:
         raise RuntimeError("No models found in checkpoints!")
 
-    cbow.load_weights_fp32(
+    cbow.load_weights(
         checkpoint_path=newest_model._str
     )
 

@@ -8,11 +8,15 @@ import numpy as np
 
 if TYPE_CHECKING:
     from com.layer import ILayer
+from com.enums import LayerType
+from com.enums import LayerFilter
+from com.enums import LayerPurpose
+from com.enums import LayerPrecision
 
 
 # Magic bytes: ASCII 'WGHT' — identifies our checkpoint format
 _MAGIC   = b'WGHT'
-_VERSION = 1
+_VERSION = 2
 
 
 class IModel(ABC):
@@ -108,10 +112,10 @@ class IModel(ABC):
 
     """
     def __init__(self) -> None:
-        self.layers: list[tuple[ILayer.LayerType, Any, ILayer]] = []
+        self.layers: list[tuple[LayerType, Any, ILayer]] = []
         self.caching = self._noop_caching
         self.handle_graph = self._noop_graph
-        self.graph: list[ILayer.LayerType] | None = None
+        self.graph: list[LayerType] | None = None
 
     def __call__(self, x) -> Any:
         return self._forward(x)
@@ -121,7 +125,7 @@ class IModel(ABC):
 
     def enable_graph_tracing(
             self,
-            graph: list[ILayer.LayerType],
+            graph: list[LayerType],
             persistent_graph = True
     ) -> None:
         self.graph = graph
@@ -138,7 +142,7 @@ class IModel(ABC):
             self.forward_graph: list[tuple[ILayer, np.ndarray]] = []
         self.forward_graph.append((layer, y))
 
-    def _register_in_graph(self, tag: ILayer.LayerType) -> None:
+    def _register_in_graph(self, tag: LayerType) -> None:
         if self.graph is None:
             raise RuntimeError("Graph not registered at registration time!")
         self.graph.append(tag)
@@ -146,10 +150,14 @@ class IModel(ABC):
     def _noop_caching(self, _layer: ILayer, _y: np.ndarray) -> None:
         pass
 
-    def _noop_graph(self, tag: ILayer.LayerType) -> None:
+    def _noop_graph(self, tag: LayerType) -> None:
         pass
 
-    def load_weights_fp32(self, checkpoint_path: str) -> None:
+    def load_weights(
+            self,
+            checkpoint_path: str,
+            tag_filter: set[LayerPurpose] = LayerFilter.INFERENCE_ONLY.as_set
+    ) -> None:
         """Load weights from a checkpoint file into initialised model.
  
         The model structure must be fully initialised before this method is
@@ -235,7 +243,11 @@ class IModel(ABC):
                 loaded = np.frombuffer(raw, dtype=np.float32).reshape(ckpt_shape)
                 np.copyto(layer_ref.weights, loaded)
 
-    def save_weights_fp32(self, checkpoint_path: str) -> None:
+    def save_weights(
+            self,
+            checkpoint_path: str, 
+            tag_filter: set[LayerPurpose] = LayerFilter.INFERENCE_ONLY.as_set
+    ) -> None:
         """Save weights of the currect state as a checkpoint file.
 
         Serialize the current model weights into a binary checkpoint file as
